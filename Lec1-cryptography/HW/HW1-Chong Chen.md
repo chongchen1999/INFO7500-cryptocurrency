@@ -72,7 +72,7 @@ fn main() {
 }
 ```
 
-### Tips to Run the Code:
+### How to Run the Code:
 1. Install the Rust compiler and toolchain from [rust-lang.org](https://www.rust-lang.org/).
 2. Add the `sha2`, `rand`, and `hex` crates to your project by adding the following to your `Cargo.toml` file:
    ```toml
@@ -86,6 +86,9 @@ fn main() {
    cargo build --release
    cargo run
    ```
+
+### One Solution:
+\( \text{x} = \text{0xd35d42afff8d5d3d12f8991a15bf93510141160007f00b2ac9257d2836002f6e} \)
 
 ---
 
