@@ -6,7 +6,6 @@ const ID: &str = "ED00AF5F774E4135E7746419FEB65DE8AE17D6950C95CEC3891070FBB5B03C
 const TARGET_BYTE: u8 = 0x2F;
 
 fn main() {
-    // Convert the ID to a byte array.
     let id_bytes = hex::decode(ID).expect("Failed to decode ID");
 
     let mut rng = rand::thread_rng();
