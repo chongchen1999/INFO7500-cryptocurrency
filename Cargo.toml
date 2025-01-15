@@ -1,0 +1,3 @@
+[workspace]
+resolver = "1"
+members = ["hw1/find_x"]
