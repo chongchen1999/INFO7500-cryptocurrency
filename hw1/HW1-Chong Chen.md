@@ -37,7 +37,7 @@ H(x_1) = H(x_2) = 1
 
 Your answer for $x$ must be in hexadecimal.
 
-### Rust Code:
+### Rust Code [https://github.com/chongchen1999/INFO7500-cryptocurrency/blob/main/hw1/find_x/src/main.rs]:
 ```rust
 use hex;
 use rand::Rng;

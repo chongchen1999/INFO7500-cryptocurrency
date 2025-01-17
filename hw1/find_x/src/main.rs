@@ -3,7 +3,6 @@ use rand::Rng;
 use sha2::{Digest, Sha256};
 
 fn main() {
-    // println!("{}", check_contain());
     let id_hex_string = "ED00AF5F774E4135E7746419FEB65DE8AE17D6950C95CEC3891070FBB5B03C78";
     const TARGET_BYTE: u8 = 0x2F;
 
