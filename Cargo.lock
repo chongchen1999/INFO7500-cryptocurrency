@@ -53,6 +53,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "digital_signature_vtl"
+version = "0.1.0"
+
+[[package]]
 name = "find_x"
 version = "0.1.0"
 dependencies = [
