@@ -1,48 +1,48 @@
 import modal
 
+# Create a container image with FastAPI installed
 image = modal.Image.debian_slim().pip_install("fastapi[standard]")
-app = modal.App(name="example-lifecycle-web", image=image)
 
+# Define a Modal app
+app = modal.App(name="chongchen-web-basic", image=image)
 
+# Basic web endpoint
 @app.function()
-@modal.web_endpoint(
-    docs=True  # adds interactive documentation in the browser
-)
+@modal.web_endpoint(docs=True)
 def hello():
-    return "Hello world!"
+    return "Hello, world!"
 
-
+# Web endpoint with query parameter
 @app.function()
 @modal.web_endpoint(docs=True)
 def greet(user: str) -> str:
     return f"Hello {user}!"
 
-
+# Web endpoint with JSON body
 @app.function()
 @modal.web_endpoint(method="POST", docs=True)
 def goodbye(data: dict) -> str:
-    name = data.get("name") or "world"
+    name = data.get("name", "world")
     return f"Goodbye {name}!"
 
-
+# Web endpoint with class-based initialization
 @app.cls()
 class WebApp:
     @modal.enter()
     def startup(self):
         from datetime import datetime, timezone
-
-        print("🏁 Starting up!")
         self.start_time = datetime.now(timezone.utc)
 
     @modal.web_endpoint(docs=True)
-    def web(self):
+    def status(self):
         from datetime import datetime, timezone
+        return {
+            "start_time": self.start_time.isoformat(),
+            "current_time": datetime.now(timezone.utc).isoformat()
+        }
 
-        current_time = datetime.now(timezone.utc)
-        return {"start_time": self.start_time, "current_time": current_time}
-
-
-@app.function(gpu="h100")
+# Secure web endpoint with proxy authentication
+@app.function()
 @modal.web_endpoint(requires_proxy_auth=True, docs=False)
-def expensive_secret():
-    return "I didn't care for 'The Godfather'. It insists upon itself."
+def secret():
+    return "This is a protected endpoint."
