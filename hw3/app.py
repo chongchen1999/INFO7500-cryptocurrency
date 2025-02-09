@@ -5,12 +5,12 @@ volume = modal.Volume.from_name("chongchen-bitcoin-data", create_if_missing=True
 # volume = modal.Volume.persistent("chongchen-bitcoin-data")  # Modal volume for persistence
 
 # Build image from Dockerfile
-image = modal.Image.from_dockerfile("docker/Dockerfile")
+image = modal.Image.from_dockerfile("Dockerfile")
 
 @app.function(
     image=image,
     volumes={"/data": volume},  # Mount Modal volume to container
-    timeout=86400 * 5,          # 4-day timeout
+    timeout=86400,
     keep_warm=1,                # Keep warm for faster restarts
 )
 def run_bitcoind():

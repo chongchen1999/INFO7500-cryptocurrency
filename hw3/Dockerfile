@@ -1,5 +1,5 @@
-# Build bitcoind from source
-FROM ubuntu:22.04
+# Use Python 3.11 as base image
+FROM python:3.11
 
 # Install dependencies
 RUN apt-get update && \
@@ -10,7 +10,6 @@ RUN apt-get update && \
       automake \
       pkg-config \
       bsdmainutils \
-      python3 \
       libssl-dev \
       libevent-dev \
       libboost-system-dev \
@@ -20,15 +19,18 @@ RUN apt-get update && \
       libboost-thread-dev \
       libzmq3-dev \
       git \
-      wget
+      wget && \
+    rm -rf /var/lib/apt/lists/*  # Cleanup to reduce image size
+
+# Set working directory for Bitcoin Core
+WORKDIR /bitcoin
 
 # Download and verify Bitcoin Core
-WORKDIR /bitcoin
 RUN wget https://bitcoincore.org/bin/bitcoin-core-25.1/bitcoin-25.1.tar.gz && \
     wget https://bitcoincore.org/bin/bitcoin-core-25.1/SHA256SUMS && \
     sha256sum --ignore-missing --check SHA256SUMS
 
-# Extract and build
+# Extract and build Bitcoin Core
 RUN tar -xzvf bitcoin-25.1.tar.gz && \
     mv bitcoin-25.1/* . && \
     rm -r bitcoin-25.1*
@@ -38,8 +40,17 @@ RUN ./autogen.sh && \
     make -j$(nproc) && \
     make install
 
+# Set working directory for Bitcoin configuration
+WORKDIR /root/.bitcoin/
+
 # Copy config file to container
-COPY bitcoin.conf /root/.bitcoin/bitcoin.conf
+COPY bitcoin.conf bitcoin.conf
+
+# Create Bitcoin data directory
+RUN mkdir -p /data
+
+# Expose default Bitcoin Core ports
+EXPOSE 8333 8332
 
 # Run bitcoind with data directory flag
 CMD ["bitcoind", "-datadir=/data"]

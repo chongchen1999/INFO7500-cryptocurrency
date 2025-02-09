@@ -2,7 +2,7 @@ version: '3'
 
 services:
   bitcoind:
-    build: ./docker
+    build: .
     ports:
       - "8332:8332"   # RPC port
       - "8333:8333"   # P2P port
