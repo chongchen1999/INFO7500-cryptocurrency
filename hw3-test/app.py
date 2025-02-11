@@ -39,7 +39,7 @@ def getblock(num: int):
     response = requests.post(
         "http://127.0.0.1:8332/rpc",
         json=payload_hash,
-        auth=("admin", "@dmin123456")
+        
     )
     response.raise_for_status()  # Raise an error if the request failed
     block_hash = response.json()["result"]
