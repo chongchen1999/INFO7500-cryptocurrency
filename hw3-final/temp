@@ -1,0 +1,26 @@
+I want to build my personal bitcoin block explorer by using Chainstack and Modal.
+The way I build it is:
+1. Sync the full bitcoin blockchain information, and store the data on Modal Volume(so the Modal Volume served as database).
+2. The way to sync the bitcoin blockchain is, write a dockerfile to run an app on Modalodal, 
+it make RPC call to a Chainstack endpoint, which is: 
+host = "bitcoin-mainnet.core.chainstack.com"
+port = "443"
+username = "focused-fermi"  
+password = "unsaid-cleft-errant-ample-sister-garnet"
+rpc_url = f"https://{username}:{password}@{host}:{port}/33c7e6e3370a6b6c4e4dcf41f2746c59"
+remember to store the username and password on Modal Secrets.
+3. Write sql, so that the user can get bitcoin data from my Modal Volume.
+
+Below is some points to implement Modal:
+1. using modal.App not Stub
+2. using modal.Volume.from_name not Volume.persisted
+3. integreate requirements.txt into dockerfile directly
+4. use @app.function not @stub.function
+5. use like:@app.function(
+    name="...",
+    volumes={"/data": volume},
+    image=bitcoin_image,
+    timeout=86400,
+    keep_warm=1,                # Keep warm for faster restarts
+    secrets=[modal.Secret.from_name("bitcoin-rpcauth")]
+)

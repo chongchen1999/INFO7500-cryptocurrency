@@ -3,4 +3,4 @@ target/
 __pycache__
 bitcoin-data
 hw3-diliu
-hw3-fianl/create_secret.py
+create_secret.py
