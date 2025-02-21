@@ -47,4 +47,3 @@ EXPOSE 8332 8333
 
 # Start bitcoind
 CMD ["bitcoind", "-datadir=/home/bitcoin/.bitcoin"]
-
