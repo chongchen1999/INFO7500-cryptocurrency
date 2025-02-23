@@ -3,121 +3,131 @@ import sqlite3
 from typing import Any, Dict, List, Tuple
 from pathlib import Path
 
-class DatabaseInserter:
-    def __init__(self, db_path: str):
-        """Initialize database connection."""
-        self.conn = sqlite3.connect(db_path)
-        self.conn.row_factory = sqlite3.Row
-        self.cursor = self.conn.cursor()
-        
-    def __enter__(self):
-        return self
-        
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Ensure proper cleanup of database connection."""
-        if exc_type is None:
-            self.conn.commit()
-        else:
-            self.conn.rollback()
-        self.cursor.close()
-        self.conn.close()
+def sanitize_identifier(name: str) -> str:
+    """
+    Sanitize table and column names to be SQL-safe.
+    Keeping this consistent with schema generator.
+    """
+    sanitized = ''.join(c if c.isalnum() else '_' for c in name)
+    if sanitized[0].isdigit():
+        sanitized = f"t_{sanitized}"
+    return sanitized.lower()
 
-    def insert_data(self, table_name: str, data: Dict[str, Any], parent_id: int = None) -> int:
-        """
-        Recursively insert data into the database.
-        
-        Args:
-            table_name: Name of the target table
-            data: Dictionary containing the data to insert
-            parent_id: ID of the parent record for nested structures
-            
-        Returns:
-            int: ID of the inserted record
-        """
-        # Prepare the data for insertion
-        insert_data = {}
-        nested_data = {}
-        
-        # Handle parent relationship
-        if parent_id is not None:
-            parent_table = table_name.rsplit('_', 1)[0]
-            insert_data[f"{parent_table}_id"] = parent_id
-            
-        # Process each field
+def flatten_data(data: Any) -> Dict[str, Any]:
+    """
+    Flatten nested data into a single-level dictionary for insertion.
+    Returns flattened data and a dict of nested objects/arrays to process separately.
+    """
+    flat_data = {}
+    nested_data = {}
+    
+    if isinstance(data, dict):
         for key, value in data.items():
-            if isinstance(value, dict):
-                # Handle nested objects
-                nested_data[f"{table_name}_{key}"] = value
+            col_name = sanitize_identifier(key)
+            
+            if isinstance(value, dict) and value:
+                nested_data[col_name] = ('object', value)
+                flat_data[f"{col_name}_id"] = None  # Will be updated with foreign key
             elif isinstance(value, list) and value and isinstance(value[0], dict):
-                # Handle arrays of objects
-                nested_data[f"{table_name}_{key}"] = value
-            elif isinstance(value, list):
-                # Convert lists to JSON string
-                insert_data[key] = json.dumps(value)
+                nested_data[col_name] = ('array', value)
             else:
-                # Handle primitive types
-                insert_data[key] = value
+                flat_data[col_name] = value
                 
-        # Construct and execute INSERT statement
-        columns = ', '.join(insert_data.keys())
-        placeholders = ', '.join(['?' for _ in insert_data])
-        values = tuple(insert_data.values())
-        
-        insert_sql = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
+    return flat_data, nested_data
+
+def insert_data(cursor: sqlite3.Cursor, table_name: str, data: Any, 
+                parent_table: str = None, parent_id: int = None) -> int:
+    """
+    Recursively insert data into the database, handling nested structures.
+    Returns the ID of the inserted record.
+    """
+    table_name = sanitize_identifier(table_name)
+    flat_data, nested_data = flatten_data(data)
+    
+    # Add parent reference if this is a nested table
+    if parent_table and parent_id:
+        flat_data[f"{sanitize_identifier(parent_table)}_id"] = parent_id
+    
+    # Prepare and execute INSERT statement
+    columns = list(flat_data.keys())
+    placeholders = ['?' for _ in columns]
+    values = [flat_data[col] for col in columns]
+    
+    if columns:  # Only insert if we have data
+        columns_str = ', '.join(columns)
+        placeholders_str = ', '.join(placeholders)
+        insert_sql = f"""
+        INSERT INTO {table_name} ({columns_str})
+        VALUES ({placeholders_str})
+        """
         try:
-            self.cursor.execute(insert_sql, values)
+            cursor.execute(insert_sql, values)
         except:
             print(insert_sql)
             print(values)
-        record_id = self.cursor.lastrowid
-        # Handle nested structures
-        for nested_table, nested_value in nested_data.items():
-            if isinstance(nested_value, list):
-                # Insert array of objects
-                for item in nested_value:
-                    self.insert_data(nested_table, item, record_id)
-            else:
-                # Insert single nested object
-                nested_id = self.insert_data(nested_table, nested_value, record_id)
-                # Update foreign key in parent
-                self.cursor.execute(
-                    f"UPDATE {table_name} SET {nested_table.split('_')[-1]}_id = ? WHERE id = ?",
-                    (nested_id, record_id)
-                )
-                
-        return record_id
+        current_id = cursor.lastrowid
+    else:
+        # Handle empty object case
+        cursor.execute(f"INSERT INTO {table_name} DEFAULT VALUES")
+        current_id = cursor.lastrowid
 
-def process_json_files(json_dir: str, db_path: str):
-    """
-    Process all JSON files in a directory and insert them into the database.
-    
-    Args:
-        json_dir: Directory containing JSON files
-        db_path: Path to the SQLite database
-    """
-    json_path = Path(json_dir)
-    
-    with DatabaseInserter(db_path) as inserter:
-        # Process each JSON file
-        for json_file in json_path.glob('block_*.json'):
-            print(f"Processing {json_file}")
+    # Process nested data
+    for key, (data_type, nested_value) in nested_data.items():
+        nested_table = f"{table_name}_{key}"
+        
+        if data_type == 'object':
+            # Insert single nested object and update foreign key
+            nested_id = insert_data(cursor, nested_table, nested_value, table_name, current_id)
+            cursor.execute(f"""
+                UPDATE {table_name} 
+                SET {key}_id = ?
+                WHERE id = ?
+            """, (nested_id, current_id))
             
-            try:
-                with open(json_file, 'r') as f:
-                    data = json.load(f)
-                
-                # Insert the block data
-                inserter.insert_data('block', data['result'])
-                print(f"Successfully processed {json_file}")
-                
-            except Exception as e:
-                print(f"Error processing {json_file}: {str(e)}")
-                raise
-
-if __name__ == "__main__":
-    # Configuration
-    JSON_DIR = "/home/tourist/neu/INFO7500-cryptocurrency/hw3/block_data"
-    DB_PATH = "/home/tourist/neu/INFO7500-cryptocurrency/hw4/blockchain.db"
+        elif data_type == 'array':
+            # Insert each object in the array
+            for item in nested_value:
+                insert_data(cursor, nested_table, item, table_name, current_id)
     
-    # Create database and insert data
-    process_json_files(JSON_DIR, DB_PATH)
+    return current_id
+
+def insert_json_to_db(db_path: str, json_data: Any, base_table_name: str):
+    """
+    Insert JSON data into SQLite database according to the generated schema.
+    """
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    try:
+        # Enable foreign keys
+        cursor.execute("PRAGMA foreign_keys = ON")
+        
+        # Begin transaction
+        cursor.execute("BEGIN TRANSACTION")
+        
+        # Insert data recursively
+        insert_data(cursor, base_table_name, json_data)
+        
+        # Commit transaction
+        conn.commit()
+        print(f"Successfully inserted data into {db_path}")
+        
+    except Exception as e:
+        conn.rollback()
+        print(f"Error inserting data: {str(e)}")
+        raise
+    
+    finally:
+        conn.close()
+
+# Example usage
+if __name__ == "__main__":
+    # Read JSON file
+    json_file = Path("/home/tourist/neu/INFO7500-cryptocurrency/hw3/block_data/block_0.json")
+    db_file = Path("/home/tourist/neu/INFO7500-cryptocurrency/hw4/blockchain.db")
+    
+    with open(json_file, "r") as f:
+        json_obj = json.load(f)
+    
+    # Insert data
+    insert_json_to_db(str(db_file), json_obj["result"], "block")

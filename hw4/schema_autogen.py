@@ -1,5 +1,5 @@
 import json
-from typing import List, Tuple, Any
+from typing import List, Any
 
 def infer_sql_type(value: Any) -> str:
     """
@@ -20,7 +20,7 @@ def infer_sql_type(value: Any) -> str:
     elif isinstance(value, float):
         return "REAL"
     elif isinstance(value, (list, dict)):
-        return "JSON"  # Store complex types as JSON
+        return "JSON"
     elif isinstance(value, str):
         if len(value) > 1000:
             return "TEXT"
@@ -38,12 +38,9 @@ def sanitize_identifier(name: str) -> str:
     Returns:
         str: Sanitized identifier name
     """
-    # Replace invalid characters with underscores
     sanitized = ''.join(c if c.isalnum() else '_' for c in name)
-    # Ensure it doesn't start with a number
     if sanitized[0].isdigit():
         sanitized = f"t_{sanitized}"
-    # Lowercase for consistency
     return sanitized.lower()
 
 def generate_schema(table_name: str, data: Any, parent_table: str = None) -> List[str]:
@@ -62,44 +59,34 @@ def generate_schema(table_name: str, data: Any, parent_table: str = None) -> Lis
     tables = []
     columns = []
     
-    # Add standard columns
     columns.append("id INTEGER PRIMARY KEY AUTOINCREMENT")
     if parent_table:
         parent_fk = f"{sanitize_identifier(parent_table)}_id INTEGER"
         columns.append(f"{parent_fk} REFERENCES {parent_table}(id)")
     
-    # Handle different data types
     if isinstance(data, dict):
         for key, value in data.items():
             col_name = sanitize_identifier(key)
-            sql_type = infer_sql_type(value)
             
-            if isinstance(value, dict) and value:
-                # Create a separate table for nested objects
-                nested_table_name = f"{table_name}_{col_name}"
-                nested_tables = generate_schema(nested_table_name, value, table_name)
-                tables.extend(nested_tables)
-                
-                # Add foreign key to the current table
-                columns.append(f"{col_name}_id INTEGER REFERENCES {nested_table_name}(id)")
-            
-            elif isinstance(value, list) and value and isinstance(value[0], dict):
-                # Create a separate table for arrays of objects
-                nested_table_name = f"{table_name}_{col_name}"
-                nested_tables = generate_schema(nested_table_name, value[0], table_name)
-                tables.extend(nested_tables)
-            
+            if isinstance(value, dict):
+                if value:  # Non-empty dictionary
+                    nested_table_name = f"{table_name}_{col_name}"
+                    nested_tables = generate_schema(nested_table_name, value, table_name)
+                    tables.extend(nested_tables)
+                    columns.append(f"{col_name}_id INTEGER REFERENCES {nested_table_name}(id)")
+                else:  # Empty dictionary
+                    sql_type = infer_sql_type(value)
+                    nullable = "NOT NULL" if value is not None else "NULL"
+                    columns.append(f"{col_name} {sql_type} {nullable}")
             else:
-                # Add regular column
+                sql_type = infer_sql_type(value)
                 nullable = "NOT NULL" if value is not None else "NULL"
                 columns.append(f"{col_name} {sql_type} {nullable}")
     
-    # Create the table DDL
     columns_sql = ",\n    ".join(columns)
     create_table = f"""CREATE TABLE IF NOT EXISTS {table_name} (
     {columns_sql}
 );"""
-    
     tables.insert(0, create_table)
     return tables
 
@@ -114,12 +101,10 @@ def generate_sql_schema(data: Any, base_table_name: str) -> str:
     Returns:
         str: Complete SQL schema
     """
-    # Enable foreign key support in SQLite
     schema = ["PRAGMA foreign_keys = ON;", ""]
     schema.append("-- Table Definitions")
     tables = generate_schema(base_table_name, data)
     schema.extend(tables)
-    
     return "\n\n".join(schema) + "\n"
 
 # Example usage
