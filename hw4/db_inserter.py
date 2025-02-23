@@ -1,124 +1,118 @@
-import json
 import sqlite3
-from typing import Any, Dict, List, Tuple
+import json
+from typing import Dict, Any
 from pathlib import Path
 
-def sanitize_identifier(name: str) -> str:
-    """
-    Sanitize table and column names to be SQL-safe.
-    Keeping this consistent with schema generator.
-    """
-    sanitized = ''.join(c if c.isalnum() else '_' for c in name)
-    if sanitized[0].isdigit():
-        sanitized = f"t_{sanitized}"
-    return sanitized.lower()
+class BlockDBInserter:
+    def __init__(self, db_path: str):
+        """Initialize database connection.
+        
+        Args:
+            db_path (str): Path to SQLite database file
+        """
+        self.conn = sqlite3.connect(db_path)
+        self.conn.execute("PRAGMA foreign_keys = ON")
+        self.cursor = self.conn.cursor()
+        
+        # Ensure the block table exists
+        self._create_table()
 
-def flatten_data(data: Any) -> Dict[str, Any]:
-    """
-    Flatten nested data into a single-level dictionary for insertion.
-    Returns flattened data and a dict of nested objects/arrays to process separately.
-    """
-    flat_data = {}
-    nested_data = {}
-    
-    if isinstance(data, dict):
-        for key, value in data.items():
-            col_name = sanitize_identifier(key)
+    def _create_table(self):
+        """Ensure the block table exists before inserting data."""
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS block (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                hash TEXT UNIQUE NOT NULL,
+                confirmations INTEGER,
+                height INTEGER NOT NULL,
+                version INTEGER,
+                versionhex TEXT,
+                merkleroot TEXT,
+                time INTEGER,
+                mediantime INTEGER,
+                nonce INTEGER,
+                bits TEXT,
+                difficulty REAL,
+                chainwork TEXT,
+                ntx INTEGER,
+                previousblockhash TEXT,
+                nextblockhash TEXT,
+                strippedsize INTEGER,
+                size INTEGER,
+                weight INTEGER,
+                tx TEXT
+            )
+        """)
+        self.conn.commit()
+
+    def insert_block(self, block_data: Dict[str, Any]) -> int:
+        """Insert a block record into the database.
+        
+        Args:
+            block_data (Dict[str, Any]): Dictionary containing block data
             
-            if isinstance(value, dict) and value:
-                nested_data[col_name] = ('object', value)
-                flat_data[f"{col_name}_id"] = None  # Will be updated with foreign key
-            elif isinstance(value, list) and value and isinstance(value[0], dict):
-                nested_data[col_name] = ('array', value)
-            else:
-                flat_data[col_name] = value
-                
-    return flat_data, nested_data
-
-def insert_data(cursor: sqlite3.Cursor, table_name: str, data: Any, 
-                parent_table: str = None, parent_id: int = None) -> int:
-    """
-    Recursively insert data into the database, handling nested structures.
-    Returns the ID of the inserted record.
-    """
-    table_name = sanitize_identifier(table_name)
-    flat_data, nested_data = flatten_data(data)
-    
-    # Add parent reference if this is a nested table
-    if parent_table and parent_id:
-        flat_data[f"{sanitize_identifier(parent_table)}_id"] = parent_id
-    
-    # Prepare and execute INSERT statement
-    columns = list(flat_data.keys())
-    placeholders = ['?' for _ in columns]
-    values = [flat_data[col] for col in columns]
-    
-    if columns:  # Only insert if we have data
-        columns_str = ', '.join(columns)
-        placeholders_str = ', '.join(placeholders)
-        insert_sql = f"""
-        INSERT INTO {table_name} ({columns_str})
-        VALUES ({placeholders_str})
+        Returns:
+            int: ID of the inserted block record
         """
         try:
-            cursor.execute(insert_sql, values)
-        except:
-            print(insert_sql)
-            print(values)
-        current_id = cursor.lastrowid
-    else:
-        # Handle empty object case
-        cursor.execute(f"INSERT INTO {table_name} DEFAULT VALUES")
-        current_id = cursor.lastrowid
+            # Convert TX data to JSON string if it isn't already
+            block_data['tx'] = json.dumps(block_data.get('tx', []))
 
-    # Process nested data
-    for key, (data_type, nested_value) in nested_data.items():
-        nested_table = f"{table_name}_{key}"
-        
-        if data_type == 'object':
-            # Insert single nested object and update foreign key
-            nested_id = insert_data(cursor, nested_table, nested_value, table_name, current_id)
-            cursor.execute(f"""
-                UPDATE {table_name} 
-                SET {key}_id = ?
-                WHERE id = ?
-            """, (nested_id, current_id))
+            # SQL query with named parameters
+            sql = """
+                INSERT INTO block (
+                    hash, confirmations, height, version, versionhex,
+                    merkleroot, time, mediantime, nonce, bits,
+                    difficulty, chainwork, ntx, previousblockhash,
+                    nextblockhash, strippedsize, size, weight, tx
+                ) VALUES (
+                    :hash, :confirmations, :height, :version, :versionhex,
+                    :merkleroot, :time, :mediantime, :nonce, :bits,
+                    :difficulty, :chainwork, :ntx, :previousblockhash,
+                    :nextblockhash, :strippedsize, :size, :weight, :tx
+                )
+            """
             
-        elif data_type == 'array':
-            # Insert each object in the array
-            for item in nested_value:
-                insert_data(cursor, nested_table, item, table_name, current_id)
-    
-    return current_id
+            # Execute the insert
+            self.cursor.execute(sql, {
+                'hash': block_data.get('hash'),
+                'confirmations': block_data.get('confirmations', 0),
+                'height': block_data.get('height'),
+                'version': block_data.get('version'),
+                'versionhex': block_data.get('versionHex'),
+                'merkleroot': block_data.get('merkleroot'),
+                'time': block_data.get('time'),
+                'mediantime': block_data.get('mediantime'),
+                'nonce': block_data.get('nonce'),
+                'bits': block_data.get('bits'),
+                'difficulty': block_data.get('difficulty'),
+                'chainwork': block_data.get('chainwork'),
+                'ntx': block_data.get('nTx'),
+                'previousblockhash': block_data.get('previousblockhash'),
+                'nextblockhash': block_data.get('nextblockhash', None),
+                'strippedsize': block_data.get('strippedsize'),
+                'size': block_data.get('size'),
+                'weight': block_data.get('weight'),
+                'tx': block_data['tx']
+            })
+            self.conn.commit()
+            
+            return self.cursor.lastrowid
+            
+        except sqlite3.IntegrityError as e:
+            self.conn.rollback()
+            raise Exception(f"Integrity error: {str(e)}")
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            raise Exception(f"Database error: {str(e)}")
+        except Exception as e:
+            self.conn.rollback()
+            raise Exception(f"Error inserting block: {str(e)}")
 
-def insert_json_to_db(db_path: str, json_data: Any, base_table_name: str):
-    """
-    Insert JSON data into SQLite database according to the generated schema.
-    """
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    
-    try:
-        # Enable foreign keys
-        cursor.execute("PRAGMA foreign_keys = ON")
-        
-        # Begin transaction
-        cursor.execute("BEGIN TRANSACTION")
-        
-        # Insert data recursively
-        insert_data(cursor, base_table_name, json_data)
-        
-        # Commit transaction
-        conn.commit()
-        print(f"Successfully inserted data into {db_path}")
-        
-    except Exception as e:
-        conn.rollback()
-        print(f"Error inserting data: {str(e)}")
-        raise
-    
-    finally:
-        conn.close()
+    def close(self):
+        """Close the database connection."""
+        if self.conn:
+            self.conn.close()
 
 # Example usage
 if __name__ == "__main__":
@@ -126,8 +120,19 @@ if __name__ == "__main__":
     json_file = Path("/home/tourist/neu/INFO7500-cryptocurrency/hw3/block_data/block_0.json")
     db_file = Path("/home/tourist/neu/INFO7500-cryptocurrency/hw4/blockchain.db")
     
-    with open(json_file, "r") as f:
-        json_obj = json.load(f)
-    
-    # Insert data
-    insert_json_to_db(str(db_file), json_obj["result"], "block")
+    try:
+        with open(json_file, "r") as f:
+            json_obj = json.load(f)
+
+        # Initialize the inserter with the correct DB path
+        inserter = BlockDBInserter(str(db_file))
+        
+        # Insert the block
+        block_id = inserter.insert_block(json_obj["result"])
+        print(f"Successfully inserted block with ID: {block_id}")
+        
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        
+    finally:
+        inserter.close()
