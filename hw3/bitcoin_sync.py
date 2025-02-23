@@ -179,7 +179,7 @@ def main():
     RPC_ENDPOINT = "https://bitcoin-mainnet.core.chainstack.com/33c7e6e3370a6b6c4e4dcf41f2746c59"
     RPC_USER = "focused-fermi"
     RPC_PASS = "unsaid-cleft-errant-ample-sister-garnet"
-    MAX_HEIGHT = 50  # Optional: set to None for no pruning
+    MAX_HEIGHT = None  # Optional: set to None for no pruning
     
     explorer = BitcoinExplorer(DB_PATH, RPC_ENDPOINT, RPC_USER, RPC_PASS, MAX_HEIGHT)
     
