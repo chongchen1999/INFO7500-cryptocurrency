@@ -1,71 +1,132 @@
+<!-- templates/index.html -->
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bitcoin Blockchain Query</title>
+    <title>Bitcoin Blockchain Explorer</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .section { margin-bottom: 30px; border-bottom: 1px solid #ccc; padding-bottom: 20px; }
-        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
-        .error { color: red; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .query-section, .results-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        textarea, input {
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 200px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            overflow-x: auto;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .schema-link {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     <h1>Bitcoin Blockchain Explorer</h1>
     
-    <div class="section">
-        <h2>Database Info</h2>
-        {% if db_info %}
-            <p>Blocks: {{ db_info.block_count }}, Max Height: {{ db_info.max_height }}, DB Size: {{ (db_info.database_size / 1024 / 1024) | round(2) }} MB</p>
+    <div class="container">
+        <div class="query-section">
+            <div class="section-title">Ask a question about the Bitcoin blockchain</div>
+            <form action="/query" method="post">
+                <textarea name="question" rows="3" placeholder="Example: 'What are the 5 most recent blocks?'" required>{{ question or "" }}</textarea>
+                <button type="submit">Submit Question</button>
+            </form>
+            <div class="schema-link">
+                <a href="/schema" target="_blank">View Database Schema</a>
+            </div>
+        </div>
+        
+        {% if sql %}
+        <div class="results-section">
+            <div class="section-title">Generated SQL Query</div>
+            <pre>{{ sql }}</pre>
+            
+            <div class="section-title">Explanation</div>
+            <p>{{ explanation }}</p>
+        </div>
+        {% endif %}
+        
+        {% if results %}
+        <div class="results-section">
+            <div class="section-title">Query Results</div>
+            <table>
+                <thead>
+                    <tr>
+                        {% for key in results[0].keys() %}
+                        <th>{{ key }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in results %}
+                    <tr>
+                        {% for value in row.values() %}
+                        <td>
+                            {% if value is mapping or value is sequence and value is not string %}
+                                <pre>{{ value | tojson(indent=2) }}</pre>
+                            {% else %}
+                                {{ value }}
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        
+        {% if error %}
+        <div class="results-section">
+            <div class="section-title">Error</div>
+            <pre style="color: red;">{{ error }}</pre>
+        </div>
         {% endif %}
     </div>
-
-    <div class="section">
-        <h2>Ask a Question</h2>
-        <form method="post" action="/query">
-            <input type="text" name="question" style="width: 100%; padding: 8px;" 
-                   placeholder="e.g. Show the latest 10 blocks" value="{{ question or '' }}">
-            <button type="submit" style="margin-top: 10px; padding: 8px 15px;">Submit</button>
-        </form>
-    </div>
-
-    {% if sql %}
-    <div class="section">
-        <h2>Generated SQL</h2>
-        <pre>{{ sql }}</pre>
-    </div>
-    {% endif %}
-
-    {% if results %}
-    <div class="section">
-        <h2>Results</h2>
-        <table>
-            <thead>
-                <tr>
-                    {% for col in results.columns %}
-                    <th>{{ col }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in results.data %}
-                <tr>
-                    {% for val in row %}
-                    <td>{{ val }}</td>
-                    {% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% endif %}
-
-    {% if error %}
-    <div class="section error">
-        <h2>Error</h2>
-        <p>{{ error }}</p>
-    </div>
-    {% endif %}
 </body>
 </html>
