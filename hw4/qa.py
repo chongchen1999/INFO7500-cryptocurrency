@@ -8,6 +8,8 @@ import modal
 
 app = modal.App("bitcoin-qa")
 volume = modal.Volume.from_name("chongchen-bitcoin-data")
+qa_history_volume = modal.Volume.from_name("chongchen-qa-history", create_if_missing=True)
+
 image = modal.Image.debian_slim().pip_install("fastapi", "uvicorn", "openai")
 
 # Define preset questions with varying difficulty levels
@@ -102,20 +104,29 @@ def execute_query(sql: str) -> List[Dict]:
 
 @app.function(
     image=image, 
-    volumes={"/data": volume}, 
+    volumes={"/bitcoin-explorer": volume}, 
     secrets=[modal.Secret.from_name("openai-api-key")]
 )
 def process_question(question: str) -> Dict:
     """Process a single question and return the results."""
+
+    history_path = "/bitcoin-explorer/history.txt"
+
     try:
         sql = translate_to_sql.remote(question)
         result = execute_query.remote(sql)
-        return {
+
+        return_result = {
             "question": question,
             "sql": sql,
             "result": result,
             "error": None
         }
+
+        with open(history_path, "a") as f:
+            f.write(json.dumps(return_result) + "\n")
+
+        return return_result
     except Exception as e:
         return {
             "question": question,
@@ -281,7 +292,3 @@ async def query(request: Request):
         return HTMLResponse(content=html_content)
     
     return HTMLResponse(content="No question provided", status_code=400)
-
-if __name__ == "__main__":
-    # For testing the function locally
-    modal.run(generate_all_qa_pairs)
