@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bitcoin Blockchain Query</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .section { margin-bottom: 30px; border-bottom: 1px solid #ccc; padding-bottom: 20px; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Bitcoin Blockchain Explorer</h1>
+    
+    <div class="section">
+        <h2>Database Info</h2>
+        {% if db_info %}
+            <p>Blocks: {{ db_info.block_count }}, Max Height: {{ db_info.max_height }}, DB Size: {{ (db_info.database_size / 1024 / 1024) | round(2) }} MB</p>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <h2>Ask a Question</h2>
+        <form method="post" action="/query">
+            <input type="text" name="question" style="width: 100%; padding: 8px;" 
+                   placeholder="e.g. Show the latest 10 blocks" value="{{ question or '' }}">
+            <button type="submit" style="margin-top: 10px; padding: 8px 15px;">Submit</button>
+        </form>
+    </div>
+
+    {% if sql %}
+    <div class="section">
+        <h2>Generated SQL</h2>
+        <pre>{{ sql }}</pre>
+    </div>
+    {% endif %}
+
+    {% if results %}
+    <div class="section">
+        <h2>Results</h2>
+        <table>
+            <thead>
+                <tr>
+                    {% for col in results.columns %}
+                    <th>{{ col }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in results.data %}
+                <tr>
+                    {% for val in row %}
+                    <td>{{ val }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="section error">
+        <h2>Error</h2>
+        <p>{{ error }}</p>
+    </div>
+    {% endif %}
+</body>
+</html>
