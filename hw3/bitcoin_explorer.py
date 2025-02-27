@@ -7,7 +7,7 @@ import json
 import time
 from typing import Dict, Any
 
-app = App(name="bitcoin-block-explorer")  # Use modal.App
+app = App(name="chongchen-bitcoin-explorer")  # Use modal.App
 
 # Define the volume and Docker image
 volume = Volume.from_name("chongchen-bitcoin-data", create_if_missing=True)
@@ -137,15 +137,15 @@ def save_block(block_data: Dict):
         conn.commit()
     
     # Save JSON to Volume
-    block_dir = "/data/blocks"
-    os.makedirs(block_dir, exist_ok=True)
-    with open(f"{block_dir}/block_{block_data['height']}.json", 'w') as f:
-        json.dump(block_data, f)
+    # block_dir = "/data/blocks"
+    # os.makedirs(block_dir, exist_ok=True)
+    # with open(f"{block_dir}/block_{block_data['height']}.json", 'w') as f:
+    #     json.dump(block_data, f)
 
 @app.function(
     volumes={"/data": volume},
     image=bitcoin_image,
-    secrets=[Secret.from_name("chongchen-bitcoin-rpcauth")],
+    secrets=[Secret.from_name("chongchen-bitcoin-chainstack")],
     timeout=86400  # Extend timeout for long syncing
 )
 def sync_blocks():
