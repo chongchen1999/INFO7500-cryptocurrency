@@ -700,4 +700,16 @@ def test_normal_cases(db_path = "/data/bitcoin.db"):
         log_test_result("normal", log_content, f"test_{test_id}")
     conn.close()
 ```
-The 
+The full QA historial is logged in the volume: https://modal.com/storage/neu-info5100-oak-spr-2025/main/chongchen-bitcoin-data/sql_tests/normal.
+
+This implementation evaluates the accuracy of a natural language-to-SQL conversion system for querying Bitcoin blockchain data stored in SQLite. It uses OpenAI’s LLM API to generate SQL queries from user questions, executes them, and compares the results with predefined correct answers. The system includes 10 test cases covering various SQL functionalities, such as counting, filtering, aggregation, and ordering. Each test logs the expected SQL, generated SQL, expected answer, and actual answer for validation. By automating query execution and result comparison, the implementation ensures accuracy and reliability in translating Bitcoin-related questions into precise SQL queries.
+
+## 5. 3 Hard Test Cases
+
+## 6. Implementation Details
+
+**All codes**: https://github.com/chongchen1999/INFO7500-cryptocurrency/tree/main/hw4
+
+**Bitcoin database on Modal Volume**: https://modal.com/api/volumes/neu-info5100-oak-spr-2025/main/chongchen-bitcoin-data/files/content?path=bitcoin.db
+
+**Test cases**: https://modal.com/storage/neu-info5100-oak-spr-2025/main/chongchen-bitcoin-data/sql_tests

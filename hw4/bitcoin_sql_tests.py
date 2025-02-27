@@ -53,43 +53,75 @@ normal_test_cases = [
 
 hard_test_cases = [
     {
-        "question": "Find the block with the largest time difference from its parent (excluding genesis).",
+        "question": "What is the median `ntx` value for blocks mined between 12:00 AM and 3:00 AM UTC, where the block's `chainwork` (hexadecimal) converted to decimal is greater than the average `chainwork` of all blocks in the same calendar week?",
         "expected_sql": """
-            SELECT b1.height, (b1.time - b2.time) AS time_gap
-            FROM block b1
-            JOIN block b2 ON b1.previousblockhash = b2.hash
-            WHERE b1.height <= 60000
-            ORDER BY time_gap DESC
-            LIMIT 1;
+            WITH WeeklyAvgChainwork AS (
+                SELECT 
+                    strftime('%Y-%W', datetime(time, 'unixepoch')) AS week,
+                    AVG(CAST(chainwork AS INTEGER)) AS avg_chainwork_decimal
+                FROM block
+                GROUP BY week
+            )
+            SELECT 
+                PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY ntx) AS median_ntx
+            FROM block
+            JOIN WeeklyAvgChainwork 
+                ON strftime('%Y-%W', datetime(block.time, 'unixepoch')) = WeeklyAvgChainwork.week
+            WHERE 
+                CAST(strftime('%H', datetime(time, 'unixepoch')) AS INTEGER) BETWEEN 0 AND 2
+                AND CAST(chainwork AS INTEGER) > avg_chainwork_decimal;
         """
     },
     {
-        "question": "What is the average number of transactions (ntx) for blocks where the next block has more weight?",
+        "question": "Find the longest consecutive sequence of blocks where each block's `mediantime` is within 10 minutes of the previous block's `mediantime`, and all blocks in the sequence have `version` 0x20000000.",
         "expected_sql": """
-            SELECT AVG(b1.ntx)
-            FROM block b1
-            JOIN block b2 ON b1.nextblockhash = b2.hash
-            WHERE b2.weight > b1.weight
-              AND b1.height <= 60000;
+            WITH RECURSIVE Chain AS (
+                SELECT 
+                    height, 
+                    mediantime, 
+                    1 AS length
+                FROM block
+                WHERE version = 0x20000000
+                UNION ALL
+                SELECT 
+                    b.height,
+                    b.mediantime,
+                    CASE WHEN ABS(b.mediantime - c.mediantime) <= 600 
+                        THEN c.length + 1 ELSE 1 END
+                FROM block b
+                JOIN Chain c ON b.height = c.height + 1
+                WHERE b.version = 0x20000000
+            )
+            SELECT MAX(length) FROM Chain;
         """
     },
     {
-        "question": "Which block (height > 1000) shares the same version as its parent and has the most transactions?",
+        "question": "How many blocks contain at least 3 transactions where: 1) The transaction has exactly 2 `vin` inputs, 2) At least one `vin` contains a `txid` with exactly 64 hexadecimal characters, and 3) The sum of `value` in `vout` is greater than 1 BTC?",
         "expected_sql": """
-            SELECT b1.height
-            FROM block b1
-            JOIN block b2 ON b1.previousblockhash = b2.hash
-            WHERE b1.version = b2.version
-              AND b1.height > 1000
-            ORDER BY b1.ntx DESC
-            LIMIT 1;
+            SELECT COUNT(DISTINCT block.height)
+            FROM block, json_each(block.tx) AS tx
+            WHERE (
+                SELECT COUNT(*)
+                FROM json_each(json_extract(tx.value, '$.vin')) AS vin
+                WHERE LENGTH(hex(vin.value->>'txid')) = 64
+            ) >= 1
+            AND json_array_length(json_extract(tx.value, '$.vin')) = 2
+            AND (
+                SELECT SUM(vout.value->>'value')
+                FROM json_each(json_extract(tx.value, '$.vout')) AS vout
+            ) > 100000000
+            GROUP BY block.height
+            HAVING COUNT(*) >= 3;
         """
     }
 ]
 
-SYSTEM_PROMPT = """You are a SQL developer that is expert in Bitcoin and you answer natural \
+SYSTEM_PROMPT = """
+    You are a SQL developer that is expert in Bitcoin and you answer natural \
     language questions about the bitcoind database in a sqlite database. \
-        You always only respond with SQL statements that are correct."""
+    You always only respond with SQL statements that are correct, \
+    you just need to give the SQL statement, nothing extra.
+"""
 
 def get_schema(conn):
     """Extract schema from SQLite database."""
@@ -224,7 +256,7 @@ def test_hard_cases(db_path = "/data/bitcoin.db"):
         expected_answer, _ = execute_sql(conn, expected_sql)
         
         # Get system's response
-        response = answer_question(question, db_path)
+        response = answer_question.remote(question, db_path)
         generated_sql = response["generated_sql"]
         generated_answer = response["result"]
         error = response["error"]
