@@ -4,6 +4,10 @@ from modal import App, Volume
 app = App("chongchen-bitcoin-rpc")
 volume = Volume.from_name("chongchen-bitcoin-data")
 
+query = '''
+    
+'''
+
 sql_statement = '''
     SELECT 
         b1.height,
