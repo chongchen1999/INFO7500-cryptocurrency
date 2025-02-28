@@ -11,7 +11,97 @@ image = modal.Image.debian_slim().pip_install("openai")
 hard_test_cases = [
     {
         "question": "What is the median nonce value for blocks mined in February 2013?",
-        "expected_sql": "SELECT AVG(nonce) FROM (SELECT nonce FROM block WHERE strftime('%Y-%m', datetime(time, 'unixepoch')) = '2013-02' ORDER BY nonce LIMIT 2 - (SELECT COUNT(*) FROM block WHERE strftime('%Y-%m', datetime(time, 'unixepoch')) = '2013-02') % 2 OFFSET (SELECT COUNT(*) FROM block WHERE strftime('%Y-%m', datetime(time, 'unixepoch')) = '2013-02') / 2);"
+        "expected_sql": """
+            SELECT AVG(nonce) 
+            FROM (
+                SELECT nonce 
+                FROM block 
+                WHERE strftime('%Y-%m', datetime(time, 'unixepoch')) = '2013-02' 
+                ORDER BY nonce 
+                LIMIT 2 - (
+                    SELECT COUNT(*) 
+                    FROM block 
+                    WHERE strftime('%Y-%m', datetime(time, 'unixepoch')) = '2013-02'
+                ) % 2 
+                OFFSET (
+                    SELECT COUNT(*) 
+                    FROM block 
+                    WHERE strftime('%Y-%m', datetime(time, 'unixepoch')) = '2013-02'
+                ) / 2
+            );
+        """
+    },
+    {
+        "question": "Analyze the 'fee market' development by calculating the implicit fee per transaction in satoshis for each block from 150000 to 160000. For this, estimate the mining reward by using the formula: (block_reward_bitcoins * 10^8 + (block_size - 80) * 10). Then calculate fee = (reward - expected_subsidy) / ntx where expected_subsidy is 50 BTC per block multiplied by 10^8 to convert to satoshis. Show the top 10 blocks with highest average fee per transaction, including block height, time (formatted as date), number of transactions, and average fee per transaction.",
+        "expected_sql": """
+            WITH block_rewards AS (
+                SELECT
+                    height,
+                    hash,
+                    ntx,
+                    size,
+                    datetime(time, 'unixepoch') AS block_date,
+                    (size - 80) * 10 AS size_reward_satoshis,
+                    CASE
+                        WHEN height < 210000 THEN 5000000000 -- 50 BTC in satoshis
+                        WHEN height < 420000 THEN 2500000000 -- 25 BTC in satoshis
+                        WHEN height < 630000 THEN 1250000000 -- 12.5 BTC in satoshis
+                        ELSE 625000000 -- 6.25 BTC in satoshis
+                    END AS block_subsidy_satoshis
+                FROM block
+                WHERE height BETWEEN 150000 AND 160000 AND ntx > 1
+            )
+            SELECT
+                height,
+                hash,
+                block_date,
+                ntx,
+                size,
+                block_subsidy_satoshis,
+                size_reward_satoshis,
+                CASE
+                    WHEN ntx > 1 THEN ROUND((size_reward_satoshis - block_subsidy_satoshis) / (ntx - 1), 2)
+                    ELSE 0
+                END AS avg_fee_per_tx_satoshis
+            FROM block_rewards
+            ORDER BY avg_fee_per_tx_satoshis DESC
+            LIMIT 10;
+        """
+    },
+    {
+        "question": "Calculate the mining difficulty adjustment pattern by finding the percentage change in difficulty between each difficulty adjustment period (every 2016 blocks) from block 50000 to 100000. Show the starting block of each period, the average block time in minutes for that period, and the percentage difficulty change.",
+        "expected_sql": """
+            WITH adjustment_periods AS (
+                SELECT 
+                    height, 
+                    difficulty,
+                    time,
+                    height / 2016 AS period_number
+                FROM block 
+                WHERE height BETWEEN 50000 AND 100000
+            ),
+            period_stats AS (
+                SELECT 
+                    period_number,
+                    MIN(height) AS start_block,
+                    MAX(difficulty) AS difficulty,
+                    (MAX(time) - MIN(time)) / (COUNT(*) - 1) / 60.0 AS avg_block_time_minutes,
+                    LAG(MAX(difficulty)) OVER (ORDER BY period_number) AS prev_difficulty
+                FROM adjustment_periods
+                GROUP BY period_number
+            )
+            SELECT 
+                start_block,
+                avg_block_time_minutes,
+                difficulty,
+                prev_difficulty,
+                CASE
+                    WHEN prev_difficulty IS NULL THEN NULL
+                    ELSE ROUND((difficulty - prev_difficulty) / prev_difficulty * 100, 2)
+                END AS difficulty_change_percent
+            FROM period_stats
+            ORDER BY start_block;
+        """
     }
 ]
 

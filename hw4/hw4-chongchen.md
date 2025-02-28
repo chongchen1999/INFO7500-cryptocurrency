@@ -1202,7 +1202,397 @@ LIMIT 5
 
 ## 5. 3 Hard Test Cases
 
+Below code write three very hard test cases that are so hard that the system is not able to answer correctly. The purpose of this is to find the limit of what’s possible for this task.
+```python
+import modal
+import sqlite3
+import os
+from openai import OpenAI
+from datetime import datetime
 
+app = modal.App("bitcoin-sql-qa")
+volume = modal.Volume.from_name("chongchen-bitcoin-data", create_if_missing=True)
+image = modal.Image.debian_slim().pip_install("openai")
+
+hard_test_cases = [
+    {
+        "question": "What is the median nonce value for blocks mined in February 2013?",
+        "expected_sql": """
+            SELECT AVG(nonce) 
+            FROM (
+                SELECT nonce 
+                FROM block 
+                WHERE strftime('%Y-%m', datetime(time, 'unixepoch')) = '2013-02' 
+                ORDER BY nonce 
+                LIMIT 2 - (
+                    SELECT COUNT(*) 
+                    FROM block 
+                    WHERE strftime('%Y-%m', datetime(time, 'unixepoch')) = '2013-02'
+                ) % 2 
+                OFFSET (
+                    SELECT COUNT(*) 
+                    FROM block 
+                    WHERE strftime('%Y-%m', datetime(time, 'unixepoch')) = '2013-02'
+                ) / 2
+            );
+        """
+    },
+    {
+        "question": "Analyze the 'fee market' development by calculating the implicit fee per transaction in satoshis for each block from 150000 to 160000. For this, estimate the mining reward by using the formula: (block_reward_bitcoins * 10^8 + (block_size - 80) * 10). Then calculate fee = (reward - expected_subsidy) / ntx where expected_subsidy is 50 BTC per block multiplied by 10^8 to convert to satoshis. Show the top 10 blocks with highest average fee per transaction, including block height, time (formatted as date), number of transactions, and average fee per transaction.",
+        "expected_sql": """
+            WITH block_rewards AS (
+                SELECT
+                    height,
+                    hash,
+                    ntx,
+                    size,
+                    datetime(time, 'unixepoch') AS block_date,
+                    (size - 80) * 10 AS size_reward_satoshis,
+                    CASE
+                        WHEN height < 210000 THEN 5000000000 -- 50 BTC in satoshis
+                        WHEN height < 420000 THEN 2500000000 -- 25 BTC in satoshis
+                        WHEN height < 630000 THEN 1250000000 -- 12.5 BTC in satoshis
+                        ELSE 625000000 -- 6.25 BTC in satoshis
+                    END AS block_subsidy_satoshis
+                FROM block
+                WHERE height BETWEEN 150000 AND 160000 AND ntx > 1
+            )
+            SELECT
+                height,
+                hash,
+                block_date,
+                ntx,
+                size,
+                block_subsidy_satoshis,
+                size_reward_satoshis,
+                CASE
+                    WHEN ntx > 1 THEN ROUND((size_reward_satoshis - block_subsidy_satoshis) / (ntx - 1), 2)
+                    ELSE 0
+                END AS avg_fee_per_tx_satoshis
+            FROM block_rewards
+            ORDER BY avg_fee_per_tx_satoshis DESC
+            LIMIT 10;
+        """
+    },
+    {
+        "question": "Calculate the mining difficulty adjustment pattern by finding the percentage change in difficulty between each difficulty adjustment period (every 2016 blocks) from block 50000 to 100000. Show the starting block of each period, the average block time in minutes for that period, and the percentage difficulty change.",
+        "expected_sql": """
+            WITH adjustment_periods AS (
+                SELECT 
+                    height, 
+                    difficulty,
+                    time,
+                    height / 2016 AS period_number
+                FROM block 
+                WHERE height BETWEEN 50000 AND 100000
+            ),
+            period_stats AS (
+                SELECT 
+                    period_number,
+                    MIN(height) AS start_block,
+                    MAX(difficulty) AS difficulty,
+                    (MAX(time) - MIN(time)) / (COUNT(*) - 1) / 60.0 AS avg_block_time_minutes,
+                    LAG(MAX(difficulty)) OVER (ORDER BY period_number) AS prev_difficulty
+                FROM adjustment_periods
+                GROUP BY period_number
+            )
+            SELECT 
+                start_block,
+                avg_block_time_minutes,
+                difficulty,
+                prev_difficulty,
+                CASE
+                    WHEN prev_difficulty IS NULL THEN NULL
+                    ELSE ROUND((difficulty - prev_difficulty) / prev_difficulty * 100, 2)
+                END AS difficulty_change_percent
+            FROM period_stats
+            ORDER BY start_block;
+        """
+    }
+]
+
+SYSTEM_PROMPT = """
+    You are a SQL developer that is expert in Bitcoin and you answer natural \
+    language questions about the bitcoind database in a sqlite database. \
+    You always only respond with SQL statements that are correct, \
+    you just need to give the SQL statement, nothing extra.
+"""
+
+def get_schema(conn):
+    """Extract schema from SQLite database."""
+    cursor = conn.cursor()
+    cursor.execute("SELECT sql FROM sqlite_master WHERE type IN ('table', 'view') AND sql IS NOT NULL")
+    schemas = cursor.fetchall()
+    return '\n'.join([schema[0] for schema in schemas])
+
+def execute_sql(conn, sql):
+    """Execute SQL query and return results or error."""
+    try:
+        cursor = conn.cursor()
+        cursor.execute(sql)
+        result = cursor.fetchall()
+        return result, None
+    except sqlite3.Error as e:
+        return None, str(e)
+
+def log_qa_history(volume, question, sql, result, error):
+    """Log QA history to a file in the Modal Volume."""
+    log_dir = "/data/qa_history"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = os.path.join(log_dir, f"{timestamp}.txt")
+    
+    log_content = f"Question: {question}\nGenerated SQL: {sql}\n"
+    if error:
+        log_content += f"Error: {error}\n"
+    else:
+        log_content += f"Result: {result}\n"
+    
+    with open(log_file, 'w') as f:
+        f.write(log_content)
+    
+    volume.commit()  # Persist changes to the volume
+
+@app.function(
+    image=image,
+    volumes={"/data": volume},
+    secrets=[modal.Secret.from_name("chongchen-llm-api-key")]
+)
+def answer_question(question: str, db_path: str):
+    conn = sqlite3.connect(db_path)
+    schema = get_schema(conn)
+    user_prompt = f"Database schema:\n{schema}\n\nQuestion: {question}"
+    
+    # Generate SQL
+    llm_api_key = os.environ["DMX_API"]
+    client = OpenAI(base_url="https://www.dmxapi.com/v1", api_key=llm_api_key)
+    response = client.chat.completions.create(
+        model="grok-3",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt}
+        ],
+        temperature=0.2,
+        max_tokens=500
+    )
+    generated_sql = response.choices[0].message.content.strip()
+    
+    # Execute SQL
+    result, error = execute_sql(conn, generated_sql)
+    conn.close()
+    
+    # Log history
+    log_qa_history(volume, question, generated_sql, result, error)
+    
+    return {
+        "generated_sql": generated_sql,
+        "result": result,
+        "error": error
+    }
+
+def log_test_result(test_type: str, content: str, filename: str):
+    log_dir = f"/data/sql_tests/{test_type}"
+    os.makedirs(log_dir, exist_ok=True)
+    # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = os.path.join(log_dir, f"{filename}.txt")
+    
+    with open(log_file, 'w') as f:
+        f.write(content)
+    volume.commit()
+
+@app.function(
+    image=image,
+    volumes={"/data": volume},
+    secrets=[modal.Secret.from_name("chongchen-llm-api-key")]
+)
+def test_hard_cases(db_path = "/data/bitcoin.db"):
+    conn = sqlite3.connect(db_path)
+    for test_id, case in enumerate(hard_test_cases, start=1):
+        question = case["question"]
+        expected_sql = case["expected_sql"]
+        
+        # Get expected answer
+        expected_answer, _ = execute_sql(conn, expected_sql)
+        
+        # Get system's response
+        response = answer_question.remote(question, db_path)
+        generated_sql = response["generated_sql"]
+        generated_answer = response["result"]
+        error = response["error"]
+        
+        # Build log content
+        log_content = (
+            f"Question: {question}\n"
+            f"Expected SQL: {expected_sql}\n"
+            f"Expected Answer: {expected_answer}\n"
+            f"Generated SQL: {generated_sql}\n"
+            f"Generated Answer: {generated_answer}\n"
+        )
+        if error:
+            log_content += f"Error: {error}\n"
+        
+        log_test_result("hard", log_content, f"test_{test_id}")
+    conn.close()
+```
+
+The full QA historial is logged in the volume: https://modal.com/storage/neu-info5100-oak-spr-2025/main/chongchen-bitcoin-data/sql_tests/hard.
+
+### Test Case 1
+
+**Question**: What is the median nonce value for blocks mined in February 2013?
+**Expected SQL**:
+```sql 
+SELECT AVG(nonce) 
+FROM (
+    SELECT nonce 
+    FROM block 
+    WHERE strftime('%Y-%m', datetime(time, 'unixepoch')) = '2013-02' 
+    ORDER BY nonce 
+    LIMIT 2 - (
+        SELECT COUNT(*) 
+        FROM block 
+        WHERE strftime('%Y-%m', datetime(time, 'unixepoch')) = '2013-02'
+    ) % 2 
+    OFFSET (
+        SELECT COUNT(*) 
+        FROM block 
+        WHERE strftime('%Y-%m', datetime(time, 'unixepoch')) = '2013-02'
+    ) / 2
+);
+```
+        
+**Expected Answer**: [(2114258196.5,)]
+**Generated SQL**: 
+```sql
+SELECT median(nonce) 
+FROM block 
+WHERE time >= 1359676800 AND time < 1362096000
+```
+**Generated Answer**: 
+None
+Error: no such function: median
+
+---
+
+### Test Case 2
+
+**Question**: Analyze the 'fee market' development by calculating the implicit fee per transaction in satoshis for each block from 150000 to 160000. For this, estimate the mining reward by using the formula: (block_reward_bitcoins * 10^8 + (block_size - 80) * 10). Then calculate fee = (reward - expected_subsidy) / ntx where expected_subsidy is 50 BTC per block multiplied by 10^8 to convert to satoshis. Show the top 10 blocks with highest average fee per transaction, including block height, time (formatted as date), number of transactions, and average fee per transaction.
+
+**Expected SQL**:
+```sql 
+WITH block_rewards AS (
+    SELECT
+        height,
+        hash,
+        ntx,
+        size,
+        datetime(time, 'unixepoch') AS block_date,
+        (size - 80) * 10 AS size_reward_satoshis,
+        CASE
+            WHEN height < 210000 THEN 5000000000 -- 50 BTC in satoshis
+            WHEN height < 420000 THEN 2500000000 -- 25 BTC in satoshis
+            WHEN height < 630000 THEN 1250000000 -- 12.5 BTC in satoshis
+            ELSE 625000000 -- 6.25 BTC in satoshis
+        END AS block_subsidy_satoshis
+    FROM block
+    WHERE height BETWEEN 150000 AND 160000 AND ntx > 1
+)
+SELECT
+    height,
+    hash,
+    block_date,
+    ntx,
+    size,
+    block_subsidy_satoshis,
+    size_reward_satoshis,
+    CASE
+        WHEN ntx > 1 THEN ROUND((size_reward_satoshis - block_subsidy_satoshis) / (ntx - 1), 2)
+        ELSE 0
+    END AS avg_fee_per_tx_satoshis
+FROM block_rewards
+ORDER BY avg_fee_per_tx_satoshis DESC
+LIMIT 10;
+```
+        
+**Expected Answer**: [(154723, '00000000000003bfc715be0afb06486c325c12dea913766564fd7e9bc453889d', '2011-11-25 12:21:16', 398, 107002, 5000000000, 1069220, -12591765.0), (156869, '00000000000002bd9cc33fbf8cfeb874a79bc51295c3c14a583178c258c1784f', '2011-12-10 04:35:39', 379, 123336, 5000000000, 1232560, -13224252.0), (154725, '00000000000008c67bc9ac7eba82450a38a94051a0f3751490ecd0d837545b24', '2011-11-25 13:04:15', 239, 69926, 5000000000, 698460, -21005468.0), (155303, '0000000000000054cafde5ade84adf4cc7b7f7cdf63bf4ba983a80f6fa1ce5c8', '2011-11-30 02:16:01', 209, 49038, 5000000000, 489580, -24036107.0), (155544, '0000000000000c86066cdc2dc8f6961da85b390e9bae9dd4e5b700830dc20f01', '2011-12-01 12:09:22', 199, 48770, 5000000000, 486900, -25250066.0), (154432, '00000000000004611ff254ba52111a14a98de7167f79feae9fdb87399e18cca0', '2011-11-23 04:06:37', 198, 49174, 5000000000, 490940, -25378218.0), (158212, '000000000000084f15663b602830d00964347643f212f44deb882b301d4d9663', '2011-12-19 20:24:27', 197, 72987, 5000000000, 729070, -25506484.0), (154385, '00000000000008f209cf9ecbfa522b0b4f0ce4a9e3bf840328b695813d89f4c9', '2011-11-22 20:02:44', 196, 76011, 5000000000, 759310, -25637131.0), (157270, '0000000000000940c5c3d1e0820806370fae3254313f2c45cab7ede2a28f880e', '2011-12-13 00:04:17', 193, 49073, 5000000000, 489930, -26039114.0), (151992, '0000000000000a544d3ba541dddae74e46469e38b1f8ba4681e0b5f722bb9670', '2011-11-05 15:11:30', 190, 56993, 5000000000, 569130, -26452015.0)]
+
+**Generated SQL**: 
+```sql
+SELECT 
+    height,
+    DATETIME(time, 'unixepoch') AS block_time,
+    nTx AS num_transactions,
+    (((50 * POW(10,8) + (size - 80) * 10) - (50 * POW(10,8))) / nTx) AS avg_fee_per_tx
+FROM block
+WHERE height BETWEEN 150000 AND 160000
+ORDER BY avg_fee_per_tx DESC
+LIMIT 10
+```
+
+**Generated Answer**: [(157101, '2011-12-11 17:27:34', 2, 353710.0), (154034, '2011-11-20 05:44:54', 2, 226750.0), (152680, '2011-11-10 09:23:34', 5, 153044.0), (154642, '2011-11-24 21:34:38', 3, 135970.0), (154764, '2011-11-25 20:14:16', 2, 120665.0), (157155, '2011-12-12 01:51:46', 3, 91793.33333333333), (152752, '2011-11-10 21:12:23', 5, 70412.0), (154761, '2011-11-25 20:00:19', 7, 70192.85714285714), (153176, '2011-11-14 00:54:35', 9, 68177.77777777778), (152461, '2011-11-08 23:50:28', 2, 68120.0)]
+
+---
+
+### Test Case 3
+
+**Question**: Calculate the mining difficulty adjustment pattern by finding the percentage change in difficulty between each difficulty adjustment period (every 2016 blocks) from block 50000 to 100000. Show the starting block of each period, the average block time in minutes for that period, and the percentage difficulty change.
+
+**Expected SQL**: 
+```sql
+WITH adjustment_periods AS (
+    SELECT 
+        height, 
+        difficulty,
+        time,
+        height / 2016 AS period_number
+    FROM block 
+    WHERE height BETWEEN 50000 AND 100000
+),
+period_stats AS (
+    SELECT 
+        period_number,
+        MIN(height) AS start_block,
+        MAX(difficulty) AS difficulty,
+        (MAX(time) - MIN(time)) / (COUNT(*) - 1) / 60.0 AS avg_block_time_minutes,
+        LAG(MAX(difficulty)) OVER (ORDER BY period_number) AS prev_difficulty
+    FROM adjustment_periods
+    GROUP BY period_number
+)
+SELECT 
+    start_block,
+    avg_block_time_minutes,
+    difficulty,
+    prev_difficulty,
+    CASE
+        WHEN prev_difficulty IS NULL THEN NULL
+        ELSE ROUND((difficulty - prev_difficulty) / prev_difficulty * 100, 2)
+    END AS difficulty_change_percent
+FROM period_stats
+ORDER BY start_block;
+```
+        
+**Expected Answer**: [(50000, 6.033333333333333, 6.085476906000794, None, None), (50400, 6.816666666666666, 7.819796993353832, 6.085476906000794, 28.5), (52416, 8.916666666666666, 11.46431580551412, 7.819796993353832, 46.61), (54432, 10.85, 12.84918314782378, 11.46431580551412, 12.08), (56448, 7.116666666666666, 11.84622814970471, 12.84918314782378, -7.81), (58464, 9.55, 16.61907875185736, 11.84622814970471, 40.29), (60480, 8.95, 17.38148815814011, 16.61907875185736, 4.59), (62496, 8.25, 19.40479632838217, 17.38148815814011, 11.64), (64512, 5.166666666666667, 23.50125722290317, 19.40479632838217, 21.11), (66528, 2.3833333333333333, 45.38582234101263, 23.50125722290317, 93.12), (68544, 7.433333333333334, 181.5432893640505, 45.38582234101263, 300.0), (70560, 6.933333333333334, 244.2132230923753, 181.5432893640505, 34.52), (72576, 6.883333333333334, 352.1612090680101, 244.2132230923753, 44.2), (74592, 8.233333333333333, 511.7735342566043, 352.1612090680101, 45.32), (76608, 8.733333333333333, 623.3869598689275, 511.7735342566043, 21.81), (78624, 7.766666666666667, 712.8848645520973, 623.3869598689275, 14.36), (80640, 6.95, 917.8307413015116, 712.8848645520973, 28.75), (82656, 9.566666666666666, 1318.670050153592, 917.8307413015116, 43.67), (84672, 6.4, 1378.028165037326, 1318.670050153592, 4.5), (86688, 6.95, 2149.021814946726, 1378.028165037326, 55.95), (88704, 6.816666666666666, 3091.736890411797, 2149.021814946726, 43.87), (90720, 6.6, 4536.353723275037, 3091.736890411797, 46.73), (92736, 8.5, 6866.898648972739, 4536.353723275037, 51.37), (94752, 6.583333333333333, 8078.195257925088, 6866.898648972739, 17.64), (96768, 8.45, 12251.9997603745, 8078.195257925088, 51.67), (98784, 9.133333333333333, 14484.1623612254, 12251.9997603745, 18.22)]
+
+**Generated SQL**: 
+```sql
+SELECT 
+    b1.height AS period_start,
+    (CAST(AVG(b2.time - b1.time) AS REAL) / 2016 * 60) AS avg_block_time_minutes,
+    ((b2.difficulty - b1.difficulty) / b1.difficulty * 100) AS difficulty_change_percent
+FROM block b1
+JOIN block b2 ON b2.height = b1.height + 2015
+WHERE b1.height % 2016 = 0 
+AND b1.height BETWEEN 50000 AND 100000 - 2015
+GROUP BY b1.height, b1.difficulty, b2.difficulty
+ORDER BY b1.height;
+```
+
+
+**Generated Answer**: [(50400, 24555.565476190473, 0.0), (52416, 32119.97023809524, 0.0), (54432, 39047.94642857143, 0.0), (56448, 25661.13095238095, 0.0), (58464, 34420.95238095238, 0.0), (60480, 32246.339285714283, 0.0), (62496, 29724.940476190473, 0.0), (64512, 18641.190476190477, 0.0), (66528, 8614.107142857143, 0.0), (68544, 26761.75595238095, 0.0), (70560, 24965.32738095238, 0.0), (72576, 24772.916666666668, 0.0), (74592, 29554.434523809523, 0.0), (76608, 31480.446428571428, 0.0), (78624, 27961.428571428572, 0.0), (80640, 25056.99404761905, 0.0), (82656, 34449.31547619047, 0.0), (84672, 23084.464285714286, 0.0), (86688, 25023.095238095237, 0.0), (88704, 24535.684523809527, 0.0), (90720, 23782.053571428572, 0.0), (92736, 30601.964285714283, 0.0), (94752, 23736.160714285714, 0.0), (96768, 30452.113095238095, 0.0)]
+
+---
 
 ## 6. Sources and Links
 
