@@ -2,6 +2,7 @@ import requests
 import json
 from datetime import datetime
 import os
+from dotenv import load_dotenv
 
 def get_block_verbose(block_hash, endpoint, username, password):
     """
@@ -60,10 +61,18 @@ def save_block_data(block_data, output_dir="block_data"):
     return filepath
 
 def main():
-    # Chainstack credentials
-    ENDPOINT = "https://bitcoin-mainnet.core.chainstack.com/33c7e6e3370a6b6c4e4dcf41f2746c59"
-    USERNAME = "focused-fermi"
-    PASSWORD = "unsaid-cleft-errant-ample-sister-garnet"
+    # Load environment variables from .env file
+    load_dotenv()
+    
+    # Get Chainstack credentials from environment variables
+    ENDPOINT = os.getenv("chainstack_https_endpoint")
+    USERNAME = os.getenv("chainstack_username")
+    PASSWORD = os.getenv("chainstack_password")
+    
+    # Check if environment variables are loaded properly
+    if not all([ENDPOINT, USERNAME, PASSWORD]):
+        print("Error: Missing environment variables. Make sure .env file exists with required variables.")
+        return
     
     # Example block hash (Bitcoin genesis block)
     BLOCK_HASH = "000000000000000000003fb9a79c6b9c73831537eb31b469ad113d6a99176a97"

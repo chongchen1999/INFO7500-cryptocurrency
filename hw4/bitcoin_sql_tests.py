@@ -53,66 +53,25 @@ normal_test_cases = [
 
 hard_test_cases = [
     {
-        "question": "What is the median `ntx` value for blocks mined between 12:00 AM and 3:00 AM UTC, where the block's `chainwork` (hexadecimal) converted to decimal is greater than the average `chainwork` of all blocks in the same calendar week?",
-        "expected_sql": """
-            WITH WeeklyAvgChainwork AS (
-                SELECT 
-                    strftime('%Y-%W', datetime(time, 'unixepoch')) AS week,
-                    AVG(CAST(chainwork AS INTEGER)) AS avg_chainwork_decimal
-                FROM block
-                GROUP BY week
-            )
-            SELECT 
-                PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY ntx) AS median_ntx
-            FROM block
-            JOIN WeeklyAvgChainwork 
-                ON strftime('%Y-%W', datetime(block.time, 'unixepoch')) = WeeklyAvgChainwork.week
-            WHERE 
-                CAST(strftime('%H', datetime(time, 'unixepoch')) AS INTEGER) BETWEEN 0 AND 2
-                AND CAST(chainwork AS INTEGER) > avg_chainwork_decimal;
-        """
+        "question": "For each calendar month, find the block with the highest difficulty. Return the hash, time (as a UTC datetime), difficulty, and the next block's hash and time. Include the month-year in the output.",
+        "expected_sql": "WITH RankedBlocks AS (SELECT hash, strftime('%Y-%m', time, 'unixepoch') AS month, time, difficulty, nextblockhash, ROW_NUMBER() OVER (PARTITION BY strftime('%Y-%m', time, 'unixepoch') ORDER BY difficulty DESC) AS rn FROM block) SELECT a.hash, datetime(a.time, 'unixepoch') AS time, a.difficulty, b.hash AS next_hash, datetime(b.time, 'unixepoch') AS next_time, a.month FROM RankedBlocks a JOIN block b ON a.nextblockhash = b.hash WHERE a.rn = 1;",
+        # "expectedAnswer": "Varies by data, but should show 1 row per month-year with valid next block links (empty next_time for last block of 2009)",
+        # "incorrectSql": "WITH RankedBlocks AS (SELECT hash, strftime('%m', time) AS month, time, difficulty, nextblockhash, ROW_NUMBER() OVER (PARTITION BY strftime('%m', time) ORDER BY difficulty DESC) AS rn FROM block) SELECT a.hash, datetime(a.time, 'unixepoch'), a.difficulty, b.hash, datetime(b.time, 'unixepoch'), a.month FROM RankedBlocks a JOIN block b ON a.height + 1 = b.height WHERE a.rn = 1;",
+        # "incorrectAnswer": "Shows multiple blocks per month across different years, potentially with invalid next block links"
     },
     {
-        "question": "Find the longest consecutive sequence of blocks where each block's `mediantime` is within 10 minutes of the previous block's `mediantime`, and all blocks in the sequence have `version` 0x20000000.",
-        "expected_sql": """
-            WITH RECURSIVE Chain AS (
-                SELECT 
-                    height, 
-                    mediantime, 
-                    1 AS length
-                FROM block
-                WHERE version = 0x20000000
-                UNION ALL
-                SELECT 
-                    b.height,
-                    b.mediantime,
-                    CASE WHEN ABS(b.mediantime - c.mediantime) <= 600 
-                        THEN c.length + 1 ELSE 1 END
-                FROM block b
-                JOIN Chain c ON b.height = c.height + 1
-                WHERE b.version = 0x20000000
-            )
-            SELECT MAX(length) FROM Chain;
-        """
+        "question": "Calculate the 7-day rolling average of transaction counts (ntx) per block, excluding the current block, for blocks in 2009. Return block hash, time, ntx, and average.",
+        "expected_sql": "SELECT hash, datetime(time, 'unixepoch'), ntx, AVG(ntx) OVER (ORDER BY time RANGE BETWEEN 604800 PRECEDING AND 1 PRECEDING) FROM block WHERE strftime('%Y', time, 'unixepoch') = '2009';",
+        # "expectedAnswer": "Gradual increase in averages from 1 to ~2 transactions/block in 2009",
+        # "incorrectSql": "SELECT hash, datetime(time, 'unixepoch'), ntx, AVG(ntx) OVER (ORDER BY time ROWS BETWEEN 6 PRECEDING) FROM block WHERE strftime('%Y', datetime(time)) = '2009';",
+        # "incorrectAnswer": "Shows higher averages (3-5) due to including current block and fixed row count window"
     },
     {
-        "question": "How many blocks contain at least 3 transactions where: 1) The transaction has exactly 2 `vin` inputs, 2) At least one `vin` contains a `txid` with exactly 64 hexadecimal characters, and 3) The sum of `value` in `vout` is greater than 1 BTC?",
-        "expected_sql": """
-            SELECT COUNT(DISTINCT block.height)
-            FROM block, json_each(block.tx) AS tx
-            WHERE (
-                SELECT COUNT(*)
-                FROM json_each(json_extract(tx.value, '$.vin')) AS vin
-                WHERE LENGTH(hex(vin.value->>'txid')) = 64
-            ) >= 1
-            AND json_array_length(json_extract(tx.value, '$.vin')) = 2
-            AND (
-                SELECT SUM(vout.value->>'value')
-                FROM json_each(json_extract(tx.value, '$.vout')) AS vout
-            ) > 100000000
-            GROUP BY block.height
-            HAVING COUNT(*) >= 3;
-        """
+        "question": "Find blocks where mediantime is greater than the average mediantime of all preceding blocks (with lower height). Return hash, height, mediantime, and preceding average.",
+        "expected_sql": "SELECT b1.hash, b1.height, b1.mediantime, (SELECT AVG(b2.mediantime) FROM block b2 WHERE b2.height < b1.height) FROM block b1 WHERE b1.mediantime > (SELECT AVG(b2.mediantime) FROM block b2 WHERE b2.height < b1.height);",
+        # "expectedAnswer": "Blocks with mediantime values above their historical average up to that point",
+        # "incorrectSql": "SELECT hash, height, mediantime, (SELECT AVG(mediantime) FROM block) FROM block WHERE mediantime > (SELECT AVG(mediantime) FROM block);",
+        # "incorrectAnswer": "Returns blocks with mediantime above global average (~1234567890) regardless of position"
     }
 ]
 
