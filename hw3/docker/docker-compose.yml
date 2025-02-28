@@ -3,13 +3,9 @@ version: '3.8'
 services:
   bitcoind:
     build: .
-    container_name: bitcoind_node
-    restart: always
-    user: "bitcoin"  # Run as non-root user
-    volumes:
-      - ./bitcoin_data:/home/bitcoin/.bitcoin  # Persistent data
     ports:
       - "8333:8333"  # P2P network
-      - "8332:8332"  # RPC
-    command: ["bitcoind", "-datadir=/home/bitcoin/.bitcoin"]
-
+      - "8332:8332"  # RPC interface
+    volumes:
+      - ./bitcoin_data:/data  # 数据卷挂载
+    command: ["bitcoind", "-datadir=/data"]

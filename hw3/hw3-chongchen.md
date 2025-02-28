@@ -4,36 +4,33 @@
 
 ### 1.1 Write a Dockerfile to Build Bitcoind  
 ```dockerfile
-# Use a base image with dependencies
-FROM debian:stable
+FROM ubuntu:22.04
 
-# Install dependencies
+ENV BITCOIN_VERSION=28.1
+ENV BITCOIN_DATA=/data
+
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    libtool \
-    autotools-dev \
-    automake \
-    pkg-config \
-    bsdmainutils \
-    python3 \
-    cmake \
-    git \
     curl \
-    libevent-dev \
-    libboost-all-dev \
-    libssl-dev \
-    libzmq3-dev
+    libssl3 \
+    libevent-2.1-7 \
+    libzmq5 \
+    python3 \
+    python3-pip \
+    && ln -s /usr/bin/python3 /usr/bin/python \
+    && rm -rf /var/lib/apt/lists/*
 
-# Clone the Bitcoin repository and build bitcoind
-RUN git clone https://github.com/bitcoin/bitcoin.git && \
-    cd bitcoin && \
-    ./autogen.sh && \
-    ./configure --without-gui && \
-    make -j$(nproc) && \
-    make install
+RUN pip3 install python-bitcoinrpc fastapi[standard]
 
-# Set up default command
-CMD ["bitcoind", "-printtoconsole"]
+RUN set -ex \
+    && BITCOIN_TAR="bitcoin-${BITCOIN_VERSION}-x86_64-linux-gnu.tar.gz" \
+    && curl -fSLO "https://bitcoincore.org/bin/bitcoin-core-${BITCOIN_VERSION}/${BITCOIN_TAR}" \
+    && tar -xzf "${BITCOIN_TAR}" -C /usr/local --strip-components=1 \
+    && rm "${BITCOIN_TAR}"
+
+RUN mkdir -p "${BITCOIN_DATA}"
+COPY bitcoin.conf "${BITCOIN_DATA}/"
+
+EXPOSE 8332 8333
 ```
 
 ### 1.2 Write a Docker-Compose File  
@@ -43,19 +40,48 @@ version: '3.8'
 services:
   bitcoind:
     build: .
-    container_name: bitcoind_node
-    volumes:
-      - ./bitcoin-data:/root/.bitcoin  # Persist data on host machine
     ports:
-      - "8332:8332"  # RPC
-      - "8333:8333"  # P2P
-    restart: unless-stopped
-    command: ["bitcoind", "-datadir=/root/.bitcoin", "-server=1", "-txindex=1", "-rpcallowip=0.0.0.0/0", "-rpcbind=0.0.0.0"]
+      - "8333:8333"  # P2P network
+      - "8332:8332"  # RPC interface
+    volumes:
+      - ./bitcoin_data:/data
+    command: ["bitcoind", "-datadir=/data"]
 ```
 
-### 1.3 Start the Bitcoind Server  
-```sh
+### 1.3 Write a bitcon.conf File
+```
+# bitcoin.conf
+server=1
+rest=1
+txindex=0 
+prune=550
+
+rpcauth=admin:bfcb3608ae0e91a0d38404fc329049f7$e7e32504e9d0da7c5351cc9474c0abf93952a7a16c5279ea70f95a16ffef99ac
+rpcallowip=127.0.0.1
+rpcport=8332
+
+listen=1
+port=8333
+```
+
+### 1.4 Data Storage Location Instructions
+1. Blockchain data will be stored on the host machine in the following paths (relative to the docker-compose.yml location):
+   * `./bitcoin_data/blocks/` (block data)
+   * `./bitcoin_data/chainstate/` (chain state)
+   * `./bitcoin_data/bitcoin.conf` (configuration file)
+2. Other important data locations:
+   * `./bitcoin_data/wallets/` (wallet files, if wallets are created)
+   * `./bitcoin_data/debug.log` (log file)
+
+### 1.5 Usage Steps:
+1. Start the container:
+```bash
 docker-compose up -d
+```
+
+2. Stop the container (data will be automatically preserved):
+```bash
+docker-compose down
 ```
 
 ---
