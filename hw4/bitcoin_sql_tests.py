@@ -53,25 +53,79 @@ normal_test_cases = [
 
 hard_test_cases = [
     {
-        "question": "For each calendar month, find the block with the highest difficulty. Return the hash, time (as a UTC datetime), difficulty, and the next block's hash and time. Include the month-year in the output.",
-        "expected_sql": "WITH RankedBlocks AS (SELECT hash, strftime('%Y-%m', time, 'unixepoch') AS month, time, difficulty, nextblockhash, ROW_NUMBER() OVER (PARTITION BY strftime('%Y-%m', time, 'unixepoch') ORDER BY difficulty DESC) AS rn FROM block) SELECT a.hash, datetime(a.time, 'unixepoch') AS time, a.difficulty, b.hash AS next_hash, datetime(b.time, 'unixepoch') AS next_time, a.month FROM RankedBlocks a JOIN block b ON a.nextblockhash = b.hash WHERE a.rn = 1;",
-        # "expectedAnswer": "Varies by data, but should show 1 row per month-year with valid next block links (empty next_time for last block of 2009)",
-        # "incorrectSql": "WITH RankedBlocks AS (SELECT hash, strftime('%m', time) AS month, time, difficulty, nextblockhash, ROW_NUMBER() OVER (PARTITION BY strftime('%m', time) ORDER BY difficulty DESC) AS rn FROM block) SELECT a.hash, datetime(a.time, 'unixepoch'), a.difficulty, b.hash, datetime(b.time, 'unixepoch'), a.month FROM RankedBlocks a JOIN block b ON a.height + 1 = b.height WHERE a.rn = 1;",
-        # "incorrectAnswer": "Shows multiple blocks per month across different years, potentially with invalid next block links"
+        "question": "Find the block where the difficulty increased by more than 10% compared to its previous block, but only if it was mined at least 2 hours after the median time of the prior 50 blocks. Include the percentage increase and the time difference.",
+        "expected_sql": """
+            WITH BlockPairs AS (
+                SELECT 
+                    b1.height AS current_height,
+                    b1.difficulty AS current_difficulty,
+                    b1.time AS current_time,
+                    b2.difficulty AS prev_difficulty,
+                    b2.time AS prev_time,
+                    (SELECT AVG(b3.mediantime) 
+                     FROM block b3 
+                     WHERE b3.height BETWEEN b1.height - 50 AND b1.height - 1) AS prior_50_median
+                FROM block b1
+                JOIN block b2 ON b1.previousblockhash = b2.hash
+            )
+            SELECT 
+                current_height,
+                ((current_difficulty - prev_difficulty) / prev_difficulty) * 100 AS percent_increase,
+                (current_time - prior_50_median) AS time_diff_seconds
+            FROM BlockPairs
+            WHERE (current_difficulty / prev_difficulty) > 1.10
+            AND (current_time - prior_50_median) >= 7200
+            LIMIT 1;
+        """
     },
     {
-        "question": "Calculate the 7-day rolling average of transaction counts (ntx) per block, excluding the current block, for blocks in 2009. Return block hash, time, ntx, and average.",
-        "expected_sql": "SELECT hash, datetime(time, 'unixepoch'), ntx, AVG(ntx) OVER (ORDER BY time RANGE BETWEEN 604800 PRECEDING AND 1 PRECEDING) FROM block WHERE strftime('%Y', time, 'unixepoch') = '2009';",
-        # "expectedAnswer": "Gradual increase in averages from 1 to ~2 transactions/block in 2009",
-        # "incorrectSql": "SELECT hash, datetime(time, 'unixepoch'), ntx, AVG(ntx) OVER (ORDER BY time ROWS BETWEEN 6 PRECEDING) FROM block WHERE strftime('%Y', datetime(time)) = '2009';",
-        # "incorrectAnswer": "Shows higher averages (3-5) due to including current block and fixed row count window"
+        "question": "How many blocks contain at least 3 transactions where the first transaction’s input script contains the hex pattern 'deadbeef' and the last transaction’s output value exceeds 1 BTC?",
+        "expected_sql": """
+            SELECT COUNT(*)
+            FROM block
+            WHERE (
+                SELECT COUNT(*)
+                FROM json_each(block.tx) AS tx
+                WHERE 
+                    json_extract(tx.value, '$.inputs[0].script') LIKE '%deadbeef%'
+                    AND (
+                        SELECT json_extract(tx.value, '$.outputs[0].value')
+                        FROM json_each(tx.value) 
+                        ORDER BY CAST(json_extract(tx.value, '$.index') AS INT) DESC
+                        LIMIT 1
+                    ) > 100000000
+            ) >= 3;
+        """
     },
     {
-        "question": "Find blocks where mediantime is greater than the average mediantime of all preceding blocks (with lower height). Return hash, height, mediantime, and preceding average.",
-        "expected_sql": "SELECT b1.hash, b1.height, b1.mediantime, (SELECT AVG(b2.mediantime) FROM block b2 WHERE b2.height < b1.height) FROM block b1 WHERE b1.mediantime > (SELECT AVG(b2.mediantime) FROM block b2 WHERE b2.height < b1.height);",
-        # "expectedAnswer": "Blocks with mediantime values above their historical average up to that point",
-        # "incorrectSql": "SELECT hash, height, mediantime, (SELECT AVG(mediantime) FROM block) FROM block WHERE mediantime > (SELECT AVG(mediantime) FROM block);",
-        # "incorrectAnswer": "Returns blocks with mediantime above global average (~1234567890) regardless of position"
+        "question": "Identify the 10-block consecutive sequence (by height) with the steepest exponential increase in chainwork value, calculated as the sum of chainwork differences between adjacent blocks.",
+        "expected_sql": """
+            WITH ChainworkNumeric AS (
+                SELECT 
+                    height,
+                    CAST(chainwork AS INTEGER) AS chainwork_num  -- Will FAIL in SQLite (hex-to-decimal)
+                FROM block
+            ),
+            Diffs AS (
+                SELECT
+                    height,
+                    chainwork_num - LAG(chainwork_num, 1) OVER (ORDER BY height) AS diff
+                FROM ChainworkNumeric
+            ),
+            Windows AS (
+                SELECT
+                    height,
+                    SUM(diff) OVER (ORDER BY height ROWS BETWEEN 9 PRECEDING AND CURRENT ROW) AS total_diff
+                FROM Diffs
+            )
+            SELECT 
+                height - 9 AS start_height,
+                height AS end_height,
+                total_diff
+            FROM Windows
+            ORDER BY total_diff DESC
+            LIMIT 1;
+        """
     }
 ]
 
