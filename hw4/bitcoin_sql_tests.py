@@ -284,4 +284,4 @@ if __name__ == "__main__":
         test_normal_cases.call(db_path)
         
         # Run hard tests
-        # test_hard_cases.call(db_path)
+        test_hard_cases.call(db_path)
