@@ -139,6 +139,7 @@ def get_database_info() -> dict:
         modal.Mount.from_local_dir("static", remote_path="/root/static")
     ]
 )
+
 @modal.asgi_app()
 def fastapi_app():
     return web_app
