@@ -13,3 +13,6 @@
 [submodule "hw5/xxx/lib/forge-std"]
 	path = hw5/xxx/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "hw5/uniswapv2-upgrade/lib/forge-std"]
+	path = hw5/uniswapv2-upgrade/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
