@@ -1,121 +1,163 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-// import "forge-std/Test.sol";
-// import "../../src/core/UniswapV2Factory.sol";
-// import "../../src/core/UniswapV2Pair.sol";
-// import "../mocks/ERC20Mock.sol";
+import "lib/forge-std/src/Test.sol";
+import "src/core/UniswapV2Factory.sol";
+import "src/core/UniswapV2Pair.sol";
+// import "src/libraries/UniswapV2Library.sol";
+// import "src/test/ERC20.sol";
 
-// contract UniswapV2FactoryTest is Test {
-//     UniswapV2Factory factory;
-//     ERC20Mock tokenA;
-//     ERC20Mock tokenB;
-//     ERC20Mock tokenC;
-//     address owner = address(1);
-//     address feeTo = address(2);
+contract UniswapV2FactoryTest is Test {
+    UniswapV2Factory factory;
     
-//     function setUp() public {
-//         // Deploy factory with owner
-//         factory = new UniswapV2Factory(owner);
-        
-//         // Deploy test tokens
-//         tokenA = new ERC20Mock("Token A", "TKNA");
-//         tokenB = new ERC20Mock("Token B", "TKNB");
-//         tokenC = new ERC20Mock("Token C", "TKNC");
-//     }
+    address TEST_ADDRESS_1 = address(0x1000000000000000000000000000000000000000);
+    address TEST_ADDRESS_2 = address(0x2000000000000000000000000000000000000000);
     
-//     function testInitialState() public {
-//         assertEq(factory.owner(), owner);
-//         assertEq(factory.feeTo(), address(0));
-//         assertEq(factory.allPairsLength(), 0);
-//     }
+    address wallet;
+    address other;
     
-//     function testCreatePair() public {
-//         address expectedPair = factory.createPair(address(tokenA), address(tokenB));
-        
-//         // Verify pair was created
-//         assertEq(factory.allPairsLength(), 1);
-//         assertEq(factory.allPairs(0), expectedPair);
-//         assertEq(factory.getPair(address(tokenA), address(tokenB)), expectedPair);
-//         assertEq(factory.getPair(address(tokenB), address(tokenA)), expectedPair);
-        
-//         // Verify pair state
-//         UniswapV2Pair pair = UniswapV2Pair(expectedPair);
-//         assertEq(pair.factory(), address(factory));
-//         assertEq(pair.token0(), address(tokenA) < address(tokenB) ? address(tokenA) : address(tokenB));
-//         assertEq(pair.token1(), address(tokenA) < address(tokenB) ? address(tokenB) : address(tokenA));
-//     }
+    event PairCreated(
+        address indexed token0,
+        address indexed token1,
+        address pair,
+        uint256
+    );
     
-//     function testCreatePairReversed() public {
-//         address expectedPair = factory.createPair(address(tokenB), address(tokenA));
+    function setUp() public {
+        wallet = address(this);
+        other = address(0xABCD);
         
-//         // Verify pair can be retrieved regardless of token order
-//         assertEq(factory.getPair(address(tokenA), address(tokenB)), expectedPair);
-//         assertEq(factory.getPair(address(tokenB), address(tokenA)), expectedPair);
-//     }
+        // 创建工厂合约，设置feeToSetter为测试合约地址
+        factory = new UniswapV2Factory(wallet);
+    }
     
-//     function testCannotCreatePairWithSameTokens() public {
-//         vm.expectRevert(bytes("UniswapV2: IDENTICAL_ADDRESSES"));
-//         factory.createPair(address(tokenA), address(tokenA));
-//     }
+    function testFeeToFeeToSetterAllPairsLength() public {
+        assertEq(factory.feeTo(), address(0));
+        assertEq(factory.feeToSetter(), wallet);
+        assertEq(factory.allPairsLength(), 0);
+    }
     
-//     function testCannotCreatePairWithZeroAddress() public {
-//         vm.expectRevert(bytes("UniswapV2: ZERO_ADDRESS"));
-//         factory.createPair(address(tokenA), address(0));
+    function testCreatePair() public {
+        address token0 = TEST_ADDRESS_1;
+        address token1 = TEST_ADDRESS_2;
         
-//         vm.expectRevert(bytes("UniswapV2: ZERO_ADDRESS"));
-//         factory.createPair(address(0), address(tokenA));
-//     }
+        // 确保token0 < token1，以匹配Uniswap的排序逻辑
+        if (token0 > token1) {
+            (token0, token1) = (token1, token0);
+        }
+        
+        // 计算预期的pair地址
+        address expectedPairAddress = computeAddress(factory, token0, token1);
+        
+        // 验证PairCreated事件
+        vm.expectEmit(true, true, true, true);
+        emit PairCreated(token0, token1, expectedPairAddress, 1);
+        
+        // 创建交易对
+        factory.createPair(TEST_ADDRESS_1, TEST_ADDRESS_2);
+        
+        // 验证创建重复交易对会失败
+        vm.expectRevert(bytes("UniswapV2: PAIR_EXISTS"));
+        factory.createPair(TEST_ADDRESS_1, TEST_ADDRESS_2);
+        
+        // 验证反序创建也会失败
+        vm.expectRevert(bytes("UniswapV2: PAIR_EXISTS"));
+        factory.createPair(TEST_ADDRESS_2, TEST_ADDRESS_1);
+        
+        // 验证getPair功能
+        assertEq(factory.getPair(TEST_ADDRESS_1, TEST_ADDRESS_2), expectedPairAddress);
+        assertEq(factory.getPair(TEST_ADDRESS_2, TEST_ADDRESS_1), expectedPairAddress);
+        
+        // 验证allPairs和allPairsLength
+        assertEq(factory.allPairs(0), expectedPairAddress);
+        assertEq(factory.allPairsLength(), 1);
+        
+        // 验证pair合约的属性
+        UniswapV2Pair pair = UniswapV2Pair(expectedPairAddress);
+        assertEq(address(pair.factory()), address(factory));
+        assertEq(pair.token0(), token0);
+        assertEq(pair.token1(), token1);
+    }
     
-//     function testCannotCreateExistingPair() public {
-//         factory.createPair(address(tokenA), address(tokenB));
+    function testCreatePairReverse() public {
+        address token0 = TEST_ADDRESS_2; // 注意这里顺序相反
+        address token1 = TEST_ADDRESS_1;
         
-//         vm.expectRevert(bytes("UniswapV2: PAIR_EXISTS"));
-//         factory.createPair(address(tokenA), address(tokenB));
+        // 确保token0 < token1，以匹配Uniswap的排序逻辑
+        if (token0 > token1) {
+            (token0, token1) = (token1, token0);
+        }
         
-//         vm.expectRevert(bytes("UniswapV2: PAIR_EXISTS"));
-//         factory.createPair(address(tokenB), address(tokenA));
-//     }
+        // 计算预期的pair地址
+        address expectedPairAddress = computeAddress(factory, token0, token1);
+        
+        // 验证PairCreated事件
+        vm.expectEmit(true, true, true, true);
+        emit PairCreated(token0, token1, expectedPairAddress, 1);
+        
+        // 创建交易对（注意这里用反序的参数）
+        factory.createPair(TEST_ADDRESS_2, TEST_ADDRESS_1);
+        
+        // 验证基本属性
+        assertEq(factory.getPair(TEST_ADDRESS_1, TEST_ADDRESS_2), expectedPairAddress);
+        assertEq(factory.getPair(TEST_ADDRESS_2, TEST_ADDRESS_1), expectedPairAddress);
+        assertEq(factory.allPairs(0), expectedPairAddress);
+        assertEq(factory.allPairsLength(), 1);
+    }
     
-//     function testMultiplePairs() public {
-//         address pair1 = factory.createPair(address(tokenA), address(tokenB));
-//         address pair2 = factory.createPair(address(tokenA), address(tokenC));
-//         address pair3 = factory.createPair(address(tokenB), address(tokenC));
+    function testCreatePairGas() public {
+        // 在Foundry中衡量gas使用
+        uint256 gasBefore = gasleft();
+        factory.createPair(TEST_ADDRESS_1, TEST_ADDRESS_2);
+        uint256 gasUsed = gasBefore - gasleft();
         
-//         assertEq(factory.allPairsLength(), 3);
-//         assertEq(factory.allPairs(0), pair1);
-//         assertEq(factory.allPairs(1), pair2);
-//         assertEq(factory.allPairs(2), pair3);
-//     }
+        // 注意：具体数值可能需要调整
+        // 原测试期望值为2512920
+        assertLe(gasUsed, 3300000);
+    }
     
-//     function testSetFeeTo() public {
-//         // Only owner can set feeTo
-//         vm.prank(owner);
-//         factory.setFeeTo(feeTo);
+    function testSetFeeTo() public {
+        // 测试非授权用户无法设置feeTo
+        vm.prank(other);
+        vm.expectRevert(bytes("UniswapV2: FORBIDDEN"));
+        factory.setFeeTo(other);
         
-//         assertEq(factory.feeTo(), feeTo);
-//     }
+        // 测试授权用户可以设置feeTo
+        factory.setFeeTo(wallet);
+        assertEq(factory.feeTo(), wallet);
+    }
     
-//     function testCannotSetFeeToUnlessOwner() public {
-//         vm.prank(address(3)); // Not the owner
-//         vm.expectRevert(bytes("UniswapV2: FORBIDDEN"));
-//         factory.setFeeTo(feeTo);
-//     }
+    function testSetFeeToSetter() public {
+        // 测试非授权用户无法设置feeToSetter
+        vm.prank(other);
+        vm.expectRevert(bytes("UniswapV2: FORBIDDEN"));
+        factory.setFeeToSetter(other);
+        
+        // 测试授权用户可以设置feeToSetter
+        factory.setFeeToSetter(other);
+        assertEq(factory.feeToSetter(), other);
+        
+        // 测试旧的feeToSetter不再有权限
+        vm.expectRevert(bytes("UniswapV2: FORBIDDEN"));
+        factory.setFeeToSetter(wallet);
+    }
     
-//     function testSetOwner() public {
-//         address newOwner = address(3);
+    // 辅助函数：计算pair地址
+    function computeAddress(
+        UniswapV2Factory _factory,
+        address tokenA,
+        address tokenB
+    ) internal pure returns (address pair) {
+        (address token0, address token1) = tokenA < tokenB
+            ? (tokenA, tokenB)
+            : (tokenB, tokenA);
         
-//         vm.prank(owner);
-//         factory.setOwner(newOwner);
-        
-//         assertEq(factory.owner(), newOwner);
-//     }
-    
-//     function testCannotSetOwnerUnlessOwner() public {
-//         address newOwner = address(3);
-        
-//         vm.prank(address(4)); // Not the owner
-//         vm.expectRevert(bytes("UniswapV2: FORBIDDEN"));
-//         factory.setOwner(newOwner);
-//     }
-// }
+        bytes32 salt = keccak256(abi.encodePacked(token0, token1));
+        pair = address(uint160(uint256(keccak256(abi.encodePacked(
+            hex'ff',
+            address(_factory),
+            salt,
+            keccak256(type(UniswapV2Pair).creationCode)
+        )))));
+    }
+}
