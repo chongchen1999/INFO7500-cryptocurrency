@@ -43,6 +43,10 @@ contract UniswapV2ERC20 is IUniswapV2ERC20 {
         emit Transfer(address(0), to, value);
     }
 
+    function mint(address to, uint value) external {
+        _mint(to, value);
+    }
+
     function _burn(address from, uint value) internal {
         balanceOf[from] -= value;
         totalSupply -= value;
