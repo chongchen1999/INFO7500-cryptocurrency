@@ -1,102 +1,801 @@
-v2-periphery/test/shared/fixtures.ts:
-import { Wallet, Contract } from 'ethers'
-import { Web3Provider } from 'ethers/providers'
-import { deployContract } from 'ethereum-waffle'
+I have my code for UniswapV2Router02.sol below, the path is: 'src/periphery/UniswapV2Router02.sol'.
+You can use import 'src/periphery/UniswapV2Router02.sol' to import it.
 
-import { expandTo18Decimals } from './utilities'
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
 
-import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
-import IUniswapV2Pair from '@uniswap/v2-core/build/IUniswapV2Pair.json'
+import 'src/core/interfaces/IUniswapV2Factory.sol';
+import 'src/libraries/TransferHelper.sol';
 
-import ERC20 from '../../build/ERC20.json'
-import WETH9 from '../../build/WETH9.json'
-import UniswapV1Exchange from '../../build/UniswapV1Exchange.json'
-import UniswapV1Factory from '../../build/UniswapV1Factory.json'
-import UniswapV2Router01 from '../../build/UniswapV2Router01.json'
-import UniswapV2Migrator from '../../build/UniswapV2Migrator.json'
-import UniswapV2Router02 from '../../build/UniswapV2Router02.json'
-import RouterEventEmitter from '../../build/RouterEventEmitter.json'
+import 'src/periphery/interfaces/IUniswapV2Router02.sol';
+import 'src/periphery/libraries/UniswapV2Library.sol';
+import 'src/core/interfaces/IERC20.sol';
+import 'src/periphery/interfaces/IWETH.sol';
 
-const overrides = {
-  gasLimit: 9999999
+contract UniswapV2Router02 is IUniswapV2Router02 {
+    // using SafeMath for uint;
+
+    address public immutable override factory;
+    address public immutable override WETH;
+
+    modifier ensure(uint deadline) {
+        require(deadline >= block.timestamp, 'UniswapV2Router: EXPIRED');
+        _;
+    }
+
+    constructor(address _factory, address _WETH) {
+        factory = _factory;
+        WETH = _WETH;
+    }
+
+    receive() external payable {
+        assert(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
+    }
+
+    // **** ADD LIQUIDITY ****
+    function _addLiquidity(
+        address tokenA,
+        address tokenB,
+        uint amountADesired,
+        uint amountBDesired,
+        uint amountAMin,
+        uint amountBMin
+    ) internal virtual returns (uint amountA, uint amountB) {
+        // create the pair if it doesn't exist yet
+        if (IUniswapV2Factory(factory).getPair(tokenA, tokenB) == address(0)) {
+            IUniswapV2Factory(factory).createPair(tokenA, tokenB);
+        }
+        (uint reserveA, uint reserveB) = UniswapV2Library.getReserves(factory, tokenA, tokenB);
+        if (reserveA == 0 && reserveB == 0) {
+            (amountA, amountB) = (amountADesired, amountBDesired);
+        } else {
+            uint amountBOptimal = UniswapV2Library.quote(amountADesired, reserveA, reserveB);
+            if (amountBOptimal <= amountBDesired) {
+                require(amountBOptimal >= amountBMin, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');
+                (amountA, amountB) = (amountADesired, amountBOptimal);
+            } else {
+                uint amountAOptimal = UniswapV2Library.quote(amountBDesired, reserveB, reserveA);
+                assert(amountAOptimal <= amountADesired);
+                require(amountAOptimal >= amountAMin, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
+                (amountA, amountB) = (amountAOptimal, amountBDesired);
+            }
+        }
+    }
+    function addLiquidity(
+        address tokenA,
+        address tokenB,
+        uint amountADesired,
+        uint amountBDesired,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline
+    ) external virtual override ensure(deadline) returns (uint amountA, uint amountB, uint liquidity) {
+        (amountA, amountB) = _addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin);
+        address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
+        TransferHelper.safeTransferFrom(tokenA, msg.sender, pair, amountA);
+        TransferHelper.safeTransferFrom(tokenB, msg.sender, pair, amountB);
+        liquidity = IUniswapV2Pair(pair).mint(to);
+    }
+    function addLiquidityETH(
+        address token,
+        uint amountTokenDesired,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline
+    ) external virtual override payable ensure(deadline) returns (uint amountToken, uint amountETH, uint liquidity) {
+        (amountToken, amountETH) = _addLiquidity(
+            token,
+            WETH,
+            amountTokenDesired,
+            msg.value,
+            amountTokenMin,
+            amountETHMin
+        );
+        address pair = UniswapV2Library.pairFor(factory, token, WETH);
+        TransferHelper.safeTransferFrom(token, msg.sender, pair, amountToken);
+        IWETH(WETH).deposit{value: amountETH}();
+        assert(IWETH(WETH).transfer(pair, amountETH));
+        liquidity = IUniswapV2Pair(pair).mint(to);
+        // refund dust eth, if any
+        if (msg.value > amountETH) TransferHelper.safeTransferETH(msg.sender, msg.value - amountETH);
+    }
+
+    // **** REMOVE LIQUIDITY ****
+    function removeLiquidity(
+        address tokenA,
+        address tokenB,
+        uint liquidity,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline
+    ) public virtual override ensure(deadline) returns (uint amountA, uint amountB) {
+        address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
+        IUniswapV2Pair(pair).get_transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
+        (uint amount0, uint amount1) = IUniswapV2Pair(pair).burn(to);
+        (address token0,) = UniswapV2Library.sortTokens(tokenA, tokenB);
+        (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);
+        require(amountA >= amountAMin, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
+        require(amountB >= amountBMin, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');
+    }
+    function removeLiquidityETH(
+        address token,
+        uint liquidity,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline
+    ) public virtual override ensure(deadline) returns (uint amountToken, uint amountETH) {
+        (amountToken, amountETH) = removeLiquidity(
+            token,
+            WETH,
+            liquidity,
+            amountTokenMin,
+            amountETHMin,
+            address(this),
+            deadline
+        );
+        TransferHelper.safeTransfer(token, to, amountToken);
+        IWETH(WETH).withdraw(amountETH);
+        TransferHelper.safeTransferETH(to, amountETH);
+    }
+    function removeLiquidityWithPermit(
+        address tokenA,
+        address tokenB,
+        uint liquidity,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline,
+        bool approveMax, uint8 v, bytes32 r, bytes32 s
+    ) external virtual override returns (uint amountA, uint amountB) {
+        address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
+        uint value = approveMax ? type(uint).max : liquidity;
+        IUniswapV2Pair(pair).get_permit(msg.sender, address(this), value, deadline, v, r, s);
+        (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);
+    }
+    function removeLiquidityETHWithPermit(
+        address token,
+        uint liquidity,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline,
+        bool approveMax, uint8 v, bytes32 r, bytes32 s
+    ) external virtual override returns (uint amountToken, uint amountETH) {
+        address pair = UniswapV2Library.pairFor(factory, token, WETH);
+        uint value = approveMax ? type(uint).max : liquidity;
+        IUniswapV2Pair(pair).get_permit(msg.sender, address(this), value, deadline, v, r, s);
+        (amountToken, amountETH) = removeLiquidityETH(token, liquidity, amountTokenMin, amountETHMin, to, deadline);
+    }
+
+    // **** REMOVE LIQUIDITY (supporting fee-on-transfer tokens) ****
+    function removeLiquidityETHSupportingFeeOnTransferTokens(
+        address token,
+        uint liquidity,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline
+    ) public virtual override ensure(deadline) returns (uint amountETH) {
+        (, amountETH) = removeLiquidity(
+            token,
+            WETH,
+            liquidity,
+            amountTokenMin,
+            amountETHMin,
+            address(this),
+            deadline
+        );
+        TransferHelper.safeTransfer(token, to, IERC20(token).balanceOf(address(this)));
+        IWETH(WETH).withdraw(amountETH);
+        TransferHelper.safeTransferETH(to, amountETH);
+    }
+    function removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(
+        address token,
+        uint liquidity,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline,
+        bool approveMax, uint8 v, bytes32 r, bytes32 s
+    ) external virtual override returns (uint amountETH) {
+        address pair = UniswapV2Library.pairFor(factory, token, WETH);
+        uint value = approveMax ? type(uint).max : liquidity;
+        IUniswapV2Pair(pair).get_permit(msg.sender, address(this), value, deadline, v, r, s);
+        amountETH = removeLiquidityETHSupportingFeeOnTransferTokens(
+            token, liquidity, amountTokenMin, amountETHMin, to, deadline
+        );
+    }
+
+    // **** SWAP ****
+    // requires the initial amount to have already been sent to the first pair
+    function _swap(uint[] memory amounts, address[] memory path, address _to) internal virtual {
+        for (uint i; i < path.length - 1; i++) {
+            (address input, address output) = (path[i], path[i + 1]);
+            (address token0,) = UniswapV2Library.sortTokens(input, output);
+            uint amountOut = amounts[i + 1];
+            (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
+            address to = i < path.length - 2 ? UniswapV2Library.pairFor(factory, output, path[i + 2]) : _to;
+            IUniswapV2Pair(UniswapV2Library.pairFor(factory, input, output)).swap(
+                amount0Out, amount1Out, to, new bytes(0)
+            );
+        }
+    }
+    function swapExactTokensForTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external virtual override ensure(deadline) returns (uint[] memory amounts) {
+        amounts = UniswapV2Library.getAmountsOut(factory, amountIn, path);
+        require(amounts[amounts.length - 1] >= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');
+        TransferHelper.safeTransferFrom(
+            path[0], msg.sender, UniswapV2Library.pairFor(factory, path[0], path[1]), amounts[0]
+        );
+        _swap(amounts, path, to);
+    }
+    function swapTokensForExactTokens(
+        uint amountOut,
+        uint amountInMax,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external virtual override ensure(deadline) returns (uint[] memory amounts) {
+        amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);
+        require(amounts[0] <= amountInMax, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');
+        TransferHelper.safeTransferFrom(
+            path[0], msg.sender, UniswapV2Library.pairFor(factory, path[0], path[1]), amounts[0]
+        );
+        _swap(amounts, path, to);
+    }
+    function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
+        external
+        virtual
+        override
+        payable
+        ensure(deadline)
+        returns (uint[] memory amounts)
+    {
+        require(path[0] == WETH, 'UniswapV2Router: INVALID_PATH');
+        amounts = UniswapV2Library.getAmountsOut(factory, msg.value, path);
+        require(amounts[amounts.length - 1] >= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');
+        IWETH(WETH).deposit{value: amounts[0]}();
+        assert(IWETH(WETH).transfer(UniswapV2Library.pairFor(factory, path[0], path[1]), amounts[0]));
+        _swap(amounts, path, to);
+    }
+    function swapTokensForExactETH(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
+        external
+        virtual
+        override
+        ensure(deadline)
+        returns (uint[] memory amounts)
+    {
+        require(path[path.length - 1] == WETH, 'UniswapV2Router: INVALID_PATH');
+        amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);
+        require(amounts[0] <= amountInMax, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');
+        TransferHelper.safeTransferFrom(
+            path[0], msg.sender, UniswapV2Library.pairFor(factory, path[0], path[1]), amounts[0]
+        );
+        _swap(amounts, path, address(this));
+        IWETH(WETH).withdraw(amounts[amounts.length - 1]);
+        TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
+    }
+    function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
+        external
+        virtual
+        override
+        ensure(deadline)
+        returns (uint[] memory amounts)
+    {
+        require(path[path.length - 1] == WETH, 'UniswapV2Router: INVALID_PATH');
+        amounts = UniswapV2Library.getAmountsOut(factory, amountIn, path);
+        require(amounts[amounts.length - 1] >= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');
+        TransferHelper.safeTransferFrom(
+            path[0], msg.sender, UniswapV2Library.pairFor(factory, path[0], path[1]), amounts[0]
+        );
+        _swap(amounts, path, address(this));
+        IWETH(WETH).withdraw(amounts[amounts.length - 1]);
+        TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
+    }
+    function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline)
+        external
+        virtual
+        override
+        payable
+        ensure(deadline)
+        returns (uint[] memory amounts)
+    {
+        require(path[0] == WETH, 'UniswapV2Router: INVALID_PATH');
+        amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);
+        require(amounts[0] <= msg.value, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');
+        IWETH(WETH).deposit{value: amounts[0]}();
+        assert(IWETH(WETH).transfer(UniswapV2Library.pairFor(factory, path[0], path[1]), amounts[0]));
+        _swap(amounts, path, to);
+        // refund dust eth, if any
+        if (msg.value > amounts[0]) TransferHelper.safeTransferETH(msg.sender, msg.value - amounts[0]);
+    }
+
+    // **** SWAP (supporting fee-on-transfer tokens) ****
+    // requires the initial amount to have already been sent to the first pair
+    function _swapSupportingFeeOnTransferTokens(address[] memory path, address _to) internal virtual {
+        for (uint i; i < path.length - 1; i++) {
+            (address input, address output) = (path[i], path[i + 1]);
+            (address token0,) = UniswapV2Library.sortTokens(input, output);
+            IUniswapV2Pair pair = IUniswapV2Pair(UniswapV2Library.pairFor(factory, input, output));
+            uint amountInput;
+            uint amountOutput;
+            { // scope to avoid stack too deep errors
+            (uint reserve0, uint reserve1,) = pair.getReserves();
+            (uint reserveInput, uint reserveOutput) = input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
+            amountInput = IERC20(input).balanceOf(address(pair)) - reserveInput;
+            amountOutput = UniswapV2Library.getAmountOut(amountInput, reserveInput, reserveOutput);
+            }
+            (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOutput) : (amountOutput, uint(0));
+            address to = i < path.length - 2 ? UniswapV2Library.pairFor(factory, output, path[i + 2]) : _to;
+            pair.swap(amount0Out, amount1Out, to, new bytes(0));
+        }
+    }
+    function swapExactTokensForTokensSupportingFeeOnTransferTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external virtual override ensure(deadline) {
+        TransferHelper.safeTransferFrom(
+            path[0], msg.sender, UniswapV2Library.pairFor(factory, path[0], path[1]), amountIn
+        );
+        uint balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
+        _swapSupportingFeeOnTransferTokens(path, to);
+        require(
+            IERC20(path[path.length - 1]).balanceOf(to) - balanceBefore >= amountOutMin,
+            'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT'
+        );
+    }
+    function swapExactETHForTokensSupportingFeeOnTransferTokens(
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    )
+        external
+        virtual
+        override
+        payable
+        ensure(deadline)
+    {
+        require(path[0] == WETH, 'UniswapV2Router: INVALID_PATH');
+        uint amountIn = msg.value;
+        IWETH(WETH).deposit{value: amountIn}();
+        assert(IWETH(WETH).transfer(UniswapV2Library.pairFor(factory, path[0], path[1]), amountIn));
+        uint balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
+        _swapSupportingFeeOnTransferTokens(path, to);
+        require(
+            IERC20(path[path.length - 1]).balanceOf(to) - balanceBefore >= amountOutMin,
+            'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT'
+        );
+    }
+    function swapExactTokensForETHSupportingFeeOnTransferTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    )
+        external
+        virtual
+        override
+        ensure(deadline)
+    {
+        require(path[path.length - 1] == WETH, 'UniswapV2Router: INVALID_PATH');
+        TransferHelper.safeTransferFrom(
+            path[0], msg.sender, UniswapV2Library.pairFor(factory, path[0], path[1]), amountIn
+        );
+        _swapSupportingFeeOnTransferTokens(path, address(this));
+        uint amountOut = IERC20(WETH).balanceOf(address(this));
+        require(amountOut >= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');
+        IWETH(WETH).withdraw(amountOut);
+        TransferHelper.safeTransferETH(to, amountOut);
+    }
+
+    // **** LIBRARY FUNCTIONS ****
+    function quote(uint amountA, uint reserveA, uint reserveB) public pure virtual override returns (uint amountB) {
+        return UniswapV2Library.quote(amountA, reserveA, reserveB);
+    }
+
+    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut)
+        public
+        pure
+        virtual
+        override
+        returns (uint amountOut)
+    {
+        return UniswapV2Library.getAmountOut(amountIn, reserveIn, reserveOut);
+    }
+
+    function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut)
+        public
+        pure
+        virtual
+        override
+        returns (uint amountIn)
+    {
+        return UniswapV2Library.getAmountIn(amountOut, reserveIn, reserveOut);
+    }
+
+    function getAmountsOut(uint amountIn, address[] memory path)
+        public
+        view
+        virtual
+        override
+        returns (uint[] memory amounts)
+    {
+        return UniswapV2Library.getAmountsOut(factory, amountIn, path);
+    }
+
+    function getAmountsIn(uint amountOut, address[] memory path)
+        public
+        view
+        virtual
+        override
+        returns (uint[] memory amounts)
+    {
+        return UniswapV2Library.getAmountsIn(factory, amountOut, path);
+    }
 }
 
-interface V2Fixture {
-  token0: Contract
-  token1: Contract
-  WETH: Contract
-  WETHPartner: Contract
-  factoryV1: Contract
-  factoryV2: Contract
-  router01: Contract
-  router02: Contract
-  routerEventEmitter: Contract
-  router: Contract
-  migrator: Contract
-  WETHExchangeV1: Contract
-  pair: Contract
-  WETHPair: Contract
+I want to write a Solidity test that achieve 100% line coverage for UniswapV2Router02.sol.
+Could you help me write the code?
+
+below are some codes that test ERC20, factory, and pair, use can reference them for implementation.
+
+test/core/UniswapV2ERC20Test.sol:
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+import "lib/forge-std/src/Test.sol";
+import "src/core/UniswapV2ERC20.sol"; // 假设合约在这个路径
+
+contract UniswapV2ERC20Test is Test {
+    UniswapV2ERC20 token;
+    address wallet = address(1);
+    address other = address(2);
+    
+    uint256 constant TOTAL_SUPPLY = 10000 * 10**18;
+    uint256 constant TEST_AMOUNT = 10 * 10**18;
+    
+    function setUp() public {
+        vm.startPrank(wallet);
+        token = new UniswapV2ERC20();
+        token.mint(wallet, TOTAL_SUPPLY);
+        vm.stopPrank();
+    }
+    
+    function testBasicProperties() public view {
+        assertEq(token.name(), "Uniswap V2");
+        assertEq(token.symbol(), "UNI-V2");
+        assertEq(token.decimals(), 18);
+        assertEq(token.totalSupply(), TOTAL_SUPPLY);
+        assertEq(token.balanceOf(wallet), TOTAL_SUPPLY);
+        
+        // 验证DOMAIN_SEPARATOR
+        bytes32 expectedDomain = keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes(token.name())),
+                keccak256(bytes("1")),
+                block.chainid,
+                address(token)
+            )
+        );
+        assertEq(token.DOMAIN_SEPARATOR(), expectedDomain);
+        
+        // 验证PERMIT_TYPEHASH
+        bytes32 expectedTypehash = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+        assertEq(token.PERMIT_TYPEHASH(), expectedTypehash);
+    }
+    
+    function testApprove() public {
+        vm.startPrank(wallet);
+        
+        // 使用IUniswapV2ERC20接口中定义的事件，而不是合约中的事件
+        // 这里需要直接使用事件签名，因为事件在原合约中被注释掉了
+        vm.expectEmit(true, true, true, true);
+        emit Approval(wallet, other, TEST_AMOUNT);
+        token.approve(other, TEST_AMOUNT);
+        
+        assertEq(token.allowance(wallet, other), TEST_AMOUNT);
+        vm.stopPrank();
+    }
+    
+    function testTransfer() public {
+        vm.startPrank(wallet);
+        
+        vm.expectEmit(true, true, true, true);
+        emit Transfer(wallet, other, TEST_AMOUNT);
+        token.transfer(other, TEST_AMOUNT);
+        
+        assertEq(token.balanceOf(wallet), TOTAL_SUPPLY - TEST_AMOUNT);
+        assertEq(token.balanceOf(other), TEST_AMOUNT);
+        vm.stopPrank();
+    }
+    
+    function testTransferFail() public {
+        vm.startPrank(wallet);
+        
+        // 测试transfer失败 - 余额不足
+        vm.expectRevert(stdError.arithmeticError);  // 使用standard error类型
+        token.transfer(other, TOTAL_SUPPLY + 1);
+        vm.stopPrank();
+        
+        vm.startPrank(other);
+        // 测试从无余额账户转账
+        vm.expectRevert(stdError.arithmeticError);  // 使用standard error类型
+        token.transfer(wallet, 1);
+        vm.stopPrank();
+    }
+    
+    function testTransferFrom() public {
+        vm.startPrank(wallet);
+        
+        // 授权other可以转账TEST_AMOUNT
+        token.approve(other, TEST_AMOUNT);
+        vm.stopPrank();
+        
+        vm.startPrank(other);
+        // 测试transferFrom
+        vm.expectEmit(true, true, true, true);
+        emit Transfer(wallet, other, TEST_AMOUNT);
+        token.transferFrom(wallet, other, TEST_AMOUNT);
+        
+        assertEq(token.allowance(wallet, other), 0);
+        assertEq(token.balanceOf(wallet), TOTAL_SUPPLY - TEST_AMOUNT);
+        assertEq(token.balanceOf(other), TEST_AMOUNT);
+        vm.stopPrank();
+    }
+    
+    function testTransferFromMax() public {
+        vm.startPrank(wallet);
+        
+        // 授权other可以转账最大值
+        token.approve(other, type(uint256).max);
+        vm.stopPrank();
+        
+        vm.startPrank(other);
+        // 测试使用最大授权额度transferFrom
+        vm.expectEmit(true, true, true, true);
+        emit Transfer(wallet, other, TEST_AMOUNT);
+        token.transferFrom(wallet, other, TEST_AMOUNT);
+        
+        // 最大授权额度不应减少
+        assertEq(token.allowance(wallet, other), type(uint256).max);
+        assertEq(token.balanceOf(wallet), TOTAL_SUPPLY - TEST_AMOUNT);
+        assertEq(token.balanceOf(other), TEST_AMOUNT);
+        vm.stopPrank();
+    }
+    
+    function testPermit() public {
+        uint256 privateKey = 0xA11CE; // 测试用私钥
+        address owner = vm.addr(privateKey); // 从私钥派生地址
+        
+        // 先给owner一些token以便测试
+        // 正确使用vm.store设置代币余额
+        vm.store(
+            address(token),
+            keccak256(abi.encode(owner, uint256(0))), // balanceOf[owner]的存储位置
+            bytes32(uint256(TOTAL_SUPPLY / 2))
+        );
+        
+        // permit参数
+        uint256 nonce = token.nonces(owner);
+        uint256 deadline = type(uint256).max;
+        
+        // 构建permit数据
+        bytes32 domainSeparator = token.DOMAIN_SEPARATOR();
+        bytes32 permitTypehash = token.PERMIT_TYPEHASH();
+        
+        bytes32 structHash = keccak256(
+            abi.encode(
+                permitTypehash,
+                owner,
+                other,
+                TEST_AMOUNT,
+                nonce,
+                deadline
+            )
+        );
+        
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                domainSeparator,
+                structHash
+            )
+        );
+        
+        // 使用私钥生成签名
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
+        
+        // 使用permit函数
+        vm.expectEmit(true, true, true, true);
+        emit Approval(owner, other, TEST_AMOUNT);
+        token.permit(owner, other, TEST_AMOUNT, deadline, v, r, s);
+        
+        // 验证结果
+        assertEq(token.allowance(owner, other), TEST_AMOUNT);
+        assertEq(token.nonces(owner), 1);
+    }
+    
+    // 直接在测试合约中定义事件，因为原合约中的事件被注释掉了
+    event Approval(address indexed owner, address indexed spender, uint value);
+    event Transfer(address indexed from, address indexed to, uint value);
 }
 
-export async function v2Fixture(provider: Web3Provider, [wallet]: Wallet[]): Promise<V2Fixture> {
-  // deploy tokens
-  const tokenA = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)])
-  const tokenB = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)])
-  const WETH = await deployContract(wallet, WETH9)
-  const WETHPartner = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)])
+test/core/UniswapV2FactoryTest.sol:
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.28;
 
-  // deploy V1
-  const factoryV1 = await deployContract(wallet, UniswapV1Factory, [])
-  await factoryV1.initializeFactory((await deployContract(wallet, UniswapV1Exchange, [])).address)
+import "lib/forge-std/src/Test.sol";
+import "src/core/UniswapV2Factory.sol";
+import "src/core/UniswapV2Pair.sol";
+// import "src/libraries/UniswapV2Library.sol";
+// import "src/test/ERC20.sol";
 
-  // deploy V2
-  const factoryV2 = await deployContract(wallet, UniswapV2Factory, [wallet.address])
-
-  // deploy routers
-  const router01 = await deployContract(wallet, UniswapV2Router01, [factoryV2.address, WETH.address], overrides)
-  const router02 = await deployContract(wallet, UniswapV2Router02, [factoryV2.address, WETH.address], overrides)
-
-  // event emitter for testing
-  const routerEventEmitter = await deployContract(wallet, RouterEventEmitter, [])
-
-  // deploy migrator
-  const migrator = await deployContract(wallet, UniswapV2Migrator, [factoryV1.address, router01.address], overrides)
-
-  // initialize V1
-  await factoryV1.createExchange(WETHPartner.address, overrides)
-  const WETHExchangeV1Address = await factoryV1.getExchange(WETHPartner.address)
-  const WETHExchangeV1 = new Contract(WETHExchangeV1Address, JSON.stringify(UniswapV1Exchange.abi), provider).connect(
-    wallet
-  )
-
-  // initialize V2
-  await factoryV2.createPair(tokenA.address, tokenB.address)
-  const pairAddress = await factoryV2.getPair(tokenA.address, tokenB.address)
-  const pair = new Contract(pairAddress, JSON.stringify(IUniswapV2Pair.abi), provider).connect(wallet)
-
-  const token0Address = await pair.token0()
-  const token0 = tokenA.address === token0Address ? tokenA : tokenB
-  const token1 = tokenA.address === token0Address ? tokenB : tokenA
-
-  await factoryV2.createPair(WETH.address, WETHPartner.address)
-  const WETHPairAddress = await factoryV2.getPair(WETH.address, WETHPartner.address)
-  const WETHPair = new Contract(WETHPairAddress, JSON.stringify(IUniswapV2Pair.abi), provider).connect(wallet)
-
-  return {
-    token0,
-    token1,
-    WETH,
-    WETHPartner,
-    factoryV1,
-    factoryV2,
-    router01,
-    router02,
-    router: router02, // the default router, 01 had a minor bug
-    routerEventEmitter,
-    migrator,
-    WETHExchangeV1,
-    pair,
-    WETHPair
-  }
+contract UniswapV2FactoryTest is Test {
+    UniswapV2Factory factory;
+    
+    address TEST_ADDRESS_1 = address(0x1000000000000000000000000000000000000000);
+    address TEST_ADDRESS_2 = address(0x2000000000000000000000000000000000000000);
+    
+    address wallet;
+    address other;
+    
+    event PairCreated(
+        address indexed token0,
+        address indexed token1,
+        address pair,
+        uint256
+    );
+    
+    function setUp() public {
+        wallet = address(this);
+        other = address(0xABCD);
+        
+        // 创建工厂合约，设置feeToSetter为测试合约地址
+        factory = new UniswapV2Factory(wallet);
+    }
+    
+    function testFeeToFeeToSetterAllPairsLength() public {
+        assertEq(factory.feeTo(), address(0));
+        assertEq(factory.feeToSetter(), wallet);
+        assertEq(factory.allPairsLength(), 0);
+    }
+    
+    function testCreatePair() public {
+        address token0 = TEST_ADDRESS_1;
+        address token1 = TEST_ADDRESS_2;
+        
+        // 确保token0 < token1，以匹配Uniswap的排序逻辑
+        if (token0 > token1) {
+            (token0, token1) = (token1, token0);
+        }
+        
+        // 计算预期的pair地址
+        address expectedPairAddress = computeAddress(factory, token0, token1);
+        
+        // 验证PairCreated事件
+        vm.expectEmit(true, true, true, true);
+        emit PairCreated(token0, token1, expectedPairAddress, 1);
+        
+        // 创建交易对
+        factory.createPair(TEST_ADDRESS_1, TEST_ADDRESS_2);
+        
+        // 验证创建重复交易对会失败
+        vm.expectRevert(bytes("UniswapV2: PAIR_EXISTS"));
+        factory.createPair(TEST_ADDRESS_1, TEST_ADDRESS_2);
+        
+        // 验证反序创建也会失败
+        vm.expectRevert(bytes("UniswapV2: PAIR_EXISTS"));
+        factory.createPair(TEST_ADDRESS_2, TEST_ADDRESS_1);
+        
+        // 验证getPair功能
+        assertEq(factory.getPair(TEST_ADDRESS_1, TEST_ADDRESS_2), expectedPairAddress);
+        assertEq(factory.getPair(TEST_ADDRESS_2, TEST_ADDRESS_1), expectedPairAddress);
+        
+        // 验证allPairs和allPairsLength
+        assertEq(factory.allPairs(0), expectedPairAddress);
+        assertEq(factory.allPairsLength(), 1);
+        
+        // 验证pair合约的属性
+        UniswapV2Pair pair = UniswapV2Pair(expectedPairAddress);
+        assertEq(address(pair.factory()), address(factory));
+        assertEq(pair.token0(), token0);
+        assertEq(pair.token1(), token1);
+    }
+    
+    function testCreatePairReverse() public {
+        address token0 = TEST_ADDRESS_2; // 注意这里顺序相反
+        address token1 = TEST_ADDRESS_1;
+        
+        // 确保token0 < token1，以匹配Uniswap的排序逻辑
+        if (token0 > token1) {
+            (token0, token1) = (token1, token0);
+        }
+        
+        // 计算预期的pair地址
+        address expectedPairAddress = computeAddress(factory, token0, token1);
+        
+        // 验证PairCreated事件
+        vm.expectEmit(true, true, true, true);
+        emit PairCreated(token0, token1, expectedPairAddress, 1);
+        
+        // 创建交易对（注意这里用反序的参数）
+        factory.createPair(TEST_ADDRESS_2, TEST_ADDRESS_1);
+        
+        // 验证基本属性
+        assertEq(factory.getPair(TEST_ADDRESS_1, TEST_ADDRESS_2), expectedPairAddress);
+        assertEq(factory.getPair(TEST_ADDRESS_2, TEST_ADDRESS_1), expectedPairAddress);
+        assertEq(factory.allPairs(0), expectedPairAddress);
+        assertEq(factory.allPairsLength(), 1);
+    }
+    
+    function testCreatePairGas() public {
+        // 在Foundry中衡量gas使用
+        uint256 gasBefore = gasleft();
+        factory.createPair(TEST_ADDRESS_1, TEST_ADDRESS_2);
+        uint256 gasUsed = gasBefore - gasleft();
+        
+        // 注意：具体数值可能需要调整
+        // 原测试期望值为2512920
+        assertLe(gasUsed, 4000000);
+    }
+    
+    function testSetFeeTo() public {
+        // 测试非授权用户无法设置feeTo
+        vm.prank(other);
+        vm.expectRevert(bytes("UniswapV2: FORBIDDEN"));
+        factory.setFeeTo(other);
+        
+        // 测试授权用户可以设置feeTo
+        factory.setFeeTo(wallet);
+        assertEq(factory.feeTo(), wallet);
+    }
+    
+    function testSetFeeToSetter() public {
+        // 测试非授权用户无法设置feeToSetter
+        vm.prank(other);
+        vm.expectRevert(bytes("UniswapV2: FORBIDDEN"));
+        factory.setFeeToSetter(other);
+        
+        // 测试授权用户可以设置feeToSetter
+        factory.setFeeToSetter(other);
+        assertEq(factory.feeToSetter(), other);
+        
+        // 测试旧的feeToSetter不再有权限
+        vm.expectRevert(bytes("UniswapV2: FORBIDDEN"));
+        factory.setFeeToSetter(wallet);
+    }
+    
+    // 辅助函数：计算pair地址
+    function computeAddress(
+        UniswapV2Factory _factory,
+        address tokenA,
+        address tokenB
+    ) internal pure returns (address pair) {
+        (address token0, address token1) = tokenA < tokenB
+            ? (tokenA, tokenB)
+            : (tokenB, tokenA);
+        
+        bytes32 salt = keccak256(abi.encodePacked(token0, token1));
+        pair = address(uint160(uint256(keccak256(abi.encodePacked(
+            hex'ff',
+            address(_factory),
+            salt,
+            keccak256(type(UniswapV2Pair).creationCode)
+        )))));
+    }
 }
-
