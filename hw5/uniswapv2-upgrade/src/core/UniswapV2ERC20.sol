@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import './interfaces/IUniswapV2ERC20.sol';
+import 'src/core/interfaces/IUniswapV2ERC20.sol';
 
 contract UniswapV2ERC20 is IUniswapV2ERC20 {
     // using SafeMath for uint;

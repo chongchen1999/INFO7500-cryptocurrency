@@ -423,4 +423,177 @@ contract UniswapV2PairTest is Test {
     event Sync(uint reserve0, uint reserve1);
     event Transfer(address indexed from, address indexed to, uint value);
     event Approval(address indexed owner, address indexed spender, uint value);
+
+    // Add these test functions to your UniswapV2PairTest contract
+
+    // Test for kLast reset when feeOn is false
+    function testKLastReset() public {
+        // First add liquidity with feeTo set
+        vm.startPrank(wallet);
+        factory.setFeeTo(other);
+        vm.stopPrank();
+        
+        uint token0Amount = expandTo18Decimals(1);
+        uint token1Amount = expandTo18Decimals(4);
+        addLiquidity(token0Amount, token1Amount);
+        
+        // Verify kLast is set
+        assertTrue(pair.kLast() > 0, "kLast should be set");
+        
+        // Turn off fees
+        vm.startPrank(wallet);
+        factory.setFeeTo(address(0));
+        vm.stopPrank();
+        
+        // Perform a mint operation to trigger _mintFee with feeOn = false
+        addLiquidity(token0Amount, token1Amount);
+        
+        // Verify kLast is reset to 0
+        assertEq(pair.kLast(), 0, "kLast should be reset to 0");
+    }
+
+    // Test alternative liquidity calculation path
+    function testAlternativeLiquidityCalculation() public {
+        uint token0Amount = expandTo18Decimals(1);
+        uint token1Amount = expandTo18Decimals(4);
+        
+        // First add some initial liquidity
+        addLiquidity(token0Amount, token1Amount);
+        
+        // Add more liquidity with different proportions
+        uint additionalToken0 = expandTo18Decimals(2);
+        uint additionalToken1 = expandTo18Decimals(8);
+        
+        UniswapV2ERC20(pair.token0()).transfer(address(pair), additionalToken0);
+        UniswapV2ERC20(pair.token1()).transfer(address(pair), additionalToken1);
+        
+        // This will trigger the else branch for liquidity calculation
+        pair.mint(address(this));
+    }
+
+    // Test skim function
+    function testSkim() public {
+        uint token0Amount = expandTo18Decimals(1);
+        uint token1Amount = expandTo18Decimals(1);
+        addLiquidity(token0Amount, token1Amount);
+        
+        // Transfer extra tokens directly to pair contract to create imbalance
+        UniswapV2ERC20(pair.token0()).transfer(address(pair), expandTo18Decimals(1) / 10);
+        UniswapV2ERC20(pair.token1()).transfer(address(pair), expandTo18Decimals(1) / 10);
+        
+        // Record balances before skim
+        uint initialBalance0 = UniswapV2ERC20(pair.token0()).balanceOf(address(this));
+        uint initialBalance1 = UniswapV2ERC20(pair.token1()).balanceOf(address(this));
+        
+        // Perform skim operation
+        pair.skim(address(this));
+        
+        // Verify the excess tokens were transferred
+        uint finalBalance0 = UniswapV2ERC20(pair.token0()).balanceOf(address(this));
+        uint finalBalance1 = UniswapV2ERC20(pair.token1()).balanceOf(address(this));
+        
+        assertTrue(finalBalance0 > initialBalance0, "Should receive excess token0");
+        assertTrue(finalBalance1 > initialBalance1, "Should receive excess token1");
+    }
+
+    // Test getter functions
+    function testGetterFunctions() public {
+        // Test name, symbol, decimals
+        assertEq(pair.get_name(), "Uniswap V2");
+        assertEq(pair.get_symbol(), "UNI-V2");
+        assertEq(pair.get_decimals(), 18);
+        
+        // Test totalSupply
+        assertTrue(pair.get_totalSupply() >= 0);
+        
+        // Test balanceOf
+        assertTrue(pair.get_balanceOf(address(this)) >= 0);
+        
+        // Test allowance
+        assertTrue(pair.get_allowance(address(this), address(1)) >= 0);
+        
+        // Test DOMAIN_SEPARATOR
+        assertTrue(pair.get_DOMAIN_SEPARATOR() != bytes32(0));
+        
+        // Test PERMIT_TYPEHASH
+        assertTrue(pair.get_PERMIT_TYPEHASH() != bytes32(0));
+        
+        // Test nonces
+        assertTrue(pair.get_nonces(address(this)) >= 0);
+    }
+
+    // Test ERC20 operations
+    function testERC20Operations() public {
+        address spender = address(1);
+        
+        // First add substantial liquidity to ensure enough tokens for operations
+        uint token0Amount = expandTo18Decimals(10);
+        uint token1Amount = expandTo18Decimals(10);
+        addLiquidity(token0Amount, token1Amount);
+        
+        uint256 testAmount = expandTo18Decimals(1); // Use 1 token for testing
+        
+        // Test approve
+        assertTrue(pair.get_approve(spender, testAmount));
+        assertEq(pair.get_allowance(address(this), spender), testAmount);
+        
+        // Test transfer
+        uint initialBalance = pair.balanceOf(address(this));
+        assertTrue(initialBalance >= testAmount, "Insufficient balance for test");
+        
+        assertTrue(pair.get_transfer(spender, testAmount));
+        assertEq(pair.balanceOf(spender), testAmount);
+        assertEq(pair.balanceOf(address(this)), initialBalance - testAmount);
+        
+        // Approve spender to transfer back
+        vm.prank(spender);
+        pair.get_approve(address(this), testAmount);
+        
+        // Test transferFrom
+        assertTrue(pair.get_transferFrom(spender, address(this), testAmount));
+        assertEq(pair.balanceOf(address(this)), initialBalance);
+        assertEq(pair.balanceOf(spender), 0);
+    }
+
+    // Test permit functionality
+    function testPermit() public {
+        uint256 privateKey = 0x1234; // Example private key
+        address owner = vm.addr(privateKey); // Get the address corresponding to the private key
+        address spender = address(1);
+        uint256 value = 1000;
+        uint256 deadline = block.timestamp + 1 hours;
+        uint256 nonce = pair.get_nonces(owner);
+
+        // Construct the permit digest
+        bytes32 DOMAIN_SEPARATOR = pair.get_DOMAIN_SEPARATOR();
+        bytes32 PERMIT_TYPEHASH = pair.get_PERMIT_TYPEHASH();
+        
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                '\x19\x01',
+                DOMAIN_SEPARATOR,
+                keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonce, deadline))
+            )
+        );
+
+        // Sign the digest with the private key
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
+
+        // Test expired deadline
+        vm.warp(block.timestamp + 2 hours);
+        vm.expectRevert("UniswapV2: EXPIRED");
+        pair.get_permit(owner, spender, value, deadline, v, r, s);
+
+        // Reset timestamp and test invalid signature
+        vm.warp(block.timestamp - 2 hours);
+        vm.expectRevert("UniswapV2: INVALID_SIGNATURE");
+        pair.get_permit(owner, spender, value, deadline, v, r, bytes32(uint256(s) + 1)); // Tamper with s
+
+        // Now test with valid signature
+        pair.get_permit(owner, spender, value, deadline, v, r, s);
+
+        // Verify the permit was successful
+        assertEq(pair.get_allowance(owner, spender), value, "Allowance not set correctly");
+        assertEq(pair.get_nonces(owner), nonce + 1, "Nonce not incremented");
+    }
 }
