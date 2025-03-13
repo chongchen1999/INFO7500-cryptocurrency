@@ -3,8 +3,8 @@ pragma solidity ^0.8.28;
 
 import "lib/forge-std/src/Test.sol";
 import "src/periphery/UniswapV2Router02.sol";
-import "src/test/mocks/liquidity/MockERC20.sol";
-import "src/test/mocks/liquidity/MockWETH.sol";
+import "src/test/mocks/MockERC20.sol";
+import "src/test/mocks/MockWETH.sol";
 import "src/core/interfaces/IUniswapV2Factory.sol";
 import "src/core/interfaces/IUniswapV2Pair.sol";
 

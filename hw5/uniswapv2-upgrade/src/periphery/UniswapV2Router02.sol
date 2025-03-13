@@ -267,13 +267,14 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint deadline
     ) external virtual override ensure(deadline) returns (uint[] memory amounts) {
+        require(path.length >= 2, 'UniswapV2Router: INVALID_PATH');
         amounts = UniswapV2Library.getAmountsOut(factory, amountIn, path);
         require(amounts[amounts.length - 1] >= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');
         
         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);
         require(pair != address(0), "UniswapV2Router: PAIR_NOT_FOUND");
         
-        TransferHelper.safeTransferFrom(path[0], msg.sender, pair, amounts[0]);
+        IERC20(path[0]).transferFrom(msg.sender, pair, amounts[0]);
         _swap(amounts, path, to);
     }
     
@@ -284,13 +285,14 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint deadline
     ) external virtual override ensure(deadline) returns (uint[] memory amounts) {
+        require(path.length >= 2, 'UniswapV2Router: INVALID_PATH');
         amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);
         require(amounts[0] <= amountInMax, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');
         
         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);
         require(pair != address(0), "UniswapV2Router: PAIR_NOT_FOUND");
         
-        TransferHelper.safeTransferFrom(path[0], msg.sender, pair, amounts[0]);
+        IERC20(path[0]).transferFrom(msg.sender, pair, amounts[0]);
         _swap(amounts, path, to);
     }
 

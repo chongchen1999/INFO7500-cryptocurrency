@@ -31,18 +31,18 @@
             <td class="headerValue">lcov.info</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntry">62</td>
-            <td class="headerCovTableEntry">206</td>
-            <td class="headerCovTableEntryLo">30.1 %</td>
+            <td class="headerCovTableEntry">68</td>
+            <td class="headerCovTableEntry">208</td>
+            <td class="headerCovTableEntryLo">32.7 %</td>
           </tr>
           <tr>
             <td class="headerItem">Date:</td>
-            <td class="headerValue">2025-03-12 20:09:08</td>
+            <td class="headerValue">2025-03-13 13:51:15</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntry">12</td>
             <td class="headerCovTableEntry">28</td>
-            <td class="headerCovTableEntryLo">32.1 %</td>
+            <td class="headerCovTableEntryLo">42.9 %</td>
           </tr>
           <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
         </table>
@@ -81,9 +81,9 @@
 <a name="19"><span class="lineNum">      19 </span>            :         _;</a>
 <a name="20"><span class="lineNum">      20 </span>            :     }</a>
 <a name="21"><span class="lineNum">      21 </span>            : </a>
-<a name="22"><span class="lineNum">      22 </span><span class="lineCov">         15 :     constructor(address _factory, address _WETH) {</span></a>
-<a name="23"><span class="lineNum">      23 </span><span class="lineCov">         15 :         factory = _factory;</span></a>
-<a name="24"><span class="lineNum">      24 </span><span class="lineCov">         15 :         WETH = _WETH;</span></a>
+<a name="22"><span class="lineNum">      22 </span><span class="lineCov">         18 :     constructor(address _factory, address _WETH) {</span></a>
+<a name="23"><span class="lineNum">      23 </span><span class="lineCov">         18 :         factory = _factory;</span></a>
+<a name="24"><span class="lineNum">      24 </span><span class="lineCov">         18 :         WETH = _WETH;</span></a>
 <a name="25"><span class="lineNum">      25 </span>            :     }</a>
 <a name="26"><span class="lineNum">      26 </span>            : </a>
 <a name="27"><span class="lineNum">      27 </span><span class="lineNoCov">          0 :     receive() external payable {</span></a>
@@ -329,272 +329,274 @@
 <a name="267"><span class="lineNum">     267 </span>            :         address to,</a>
 <a name="268"><span class="lineNum">     268 </span>            :         uint deadline</a>
 <a name="269"><span class="lineNum">     269 </span>            :     ) external virtual override ensure(deadline) returns (uint[] memory amounts) {</a>
-<a name="270"><span class="lineNum">     270 </span><span class="lineNoCov">          0 :         amounts = UniswapV2Library.getAmountsOut(factory, amountIn, path);</span></a>
-<a name="271"><span class="lineNum">     271 </span><span class="lineNoCov">          0 :         require(amounts[amounts.length - 1] &gt;= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');</span></a>
-<a name="272"><span class="lineNum">     272 </span>            :         </a>
-<a name="273"><span class="lineNum">     273 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
-<a name="274"><span class="lineNum">     274 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
-<a name="275"><span class="lineNum">     275 </span>            :         </a>
-<a name="276"><span class="lineNum">     276 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferFrom(path[0], msg.sender, pair, amounts[0]);</span></a>
-<a name="277"><span class="lineNum">     277 </span><span class="lineNoCov">          0 :         _swap(amounts, path, to);</span></a>
-<a name="278"><span class="lineNum">     278 </span>            :     }</a>
-<a name="279"><span class="lineNum">     279 </span>            :     </a>
-<a name="280"><span class="lineNum">     280 </span><span class="lineNoCov">          0 :     function swapTokensForExactTokens(</span></a>
-<a name="281"><span class="lineNum">     281 </span>            :         uint amountOut,</a>
-<a name="282"><span class="lineNum">     282 </span>            :         uint amountInMax,</a>
-<a name="283"><span class="lineNum">     283 </span>            :         address[] calldata path,</a>
-<a name="284"><span class="lineNum">     284 </span>            :         address to,</a>
-<a name="285"><span class="lineNum">     285 </span>            :         uint deadline</a>
-<a name="286"><span class="lineNum">     286 </span>            :     ) external virtual override ensure(deadline) returns (uint[] memory amounts) {</a>
-<a name="287"><span class="lineNum">     287 </span><span class="lineNoCov">          0 :         amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);</span></a>
-<a name="288"><span class="lineNum">     288 </span><span class="lineNoCov">          0 :         require(amounts[0] &lt;= amountInMax, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');</span></a>
-<a name="289"><span class="lineNum">     289 </span>            :         </a>
-<a name="290"><span class="lineNum">     290 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
-<a name="291"><span class="lineNum">     291 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
-<a name="292"><span class="lineNum">     292 </span>            :         </a>
-<a name="293"><span class="lineNum">     293 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferFrom(path[0], msg.sender, pair, amounts[0]);</span></a>
-<a name="294"><span class="lineNum">     294 </span><span class="lineNoCov">          0 :         _swap(amounts, path, to);</span></a>
-<a name="295"><span class="lineNum">     295 </span>            :     }</a>
-<a name="296"><span class="lineNum">     296 </span>            : </a>
-<a name="297"><span class="lineNum">     297 </span><span class="lineNoCov">          0 :     function swapExactETHForTokens(</span></a>
-<a name="298"><span class="lineNum">     298 </span>            :         uint amountOutMin,</a>
-<a name="299"><span class="lineNum">     299 </span>            :         address[] calldata path,</a>
-<a name="300"><span class="lineNum">     300 </span>            :         address to,</a>
-<a name="301"><span class="lineNum">     301 </span>            :         uint deadline</a>
-<a name="302"><span class="lineNum">     302 </span>            :     )</a>
-<a name="303"><span class="lineNum">     303 </span>            :         external</a>
-<a name="304"><span class="lineNum">     304 </span>            :         virtual</a>
-<a name="305"><span class="lineNum">     305 </span>            :         override</a>
-<a name="306"><span class="lineNum">     306 </span>            :         payable</a>
-<a name="307"><span class="lineNum">     307 </span>            :         ensure(deadline)</a>
-<a name="308"><span class="lineNum">     308 </span>            :         returns (uint[] memory amounts)</a>
-<a name="309"><span class="lineNum">     309 </span>            :     {</a>
-<a name="310"><span class="lineNum">     310 </span><span class="lineNoCov">          0 :         require(path[0] == WETH, 'UniswapV2Router: INVALID_PATH');</span></a>
-<a name="311"><span class="lineNum">     311 </span><span class="lineNoCov">          0 :         amounts = UniswapV2Library.getAmountsOut(factory, msg.value, path);</span></a>
-<a name="312"><span class="lineNum">     312 </span><span class="lineNoCov">          0 :         require(amounts[amounts.length - 1] &gt;= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');</span></a>
-<a name="313"><span class="lineNum">     313 </span>            :         </a>
-<a name="314"><span class="lineNum">     314 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
-<a name="315"><span class="lineNum">     315 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
-<a name="316"><span class="lineNum">     316 </span>            :         </a>
-<a name="317"><span class="lineNum">     317 </span><span class="lineNoCov">          0 :         IWETH(WETH).deposit{value: amounts[0]}();</span></a>
-<a name="318"><span class="lineNum">     318 </span><span class="lineNoCov">          0 :         assert(IWETH(WETH).transfer(pair, amounts[0]));</span></a>
-<a name="319"><span class="lineNum">     319 </span><span class="lineNoCov">          0 :         _swap(amounts, path, to);</span></a>
-<a name="320"><span class="lineNum">     320 </span>            :         // refund dust eth, if any</a>
-<a name="321"><span class="lineNum">     321 </span><span class="lineNoCov">          0 :         if (msg.value &gt; amounts[0]) TransferHelper.safeTransferETH(msg.sender, msg.value - amounts[0]);</span></a>
-<a name="322"><span class="lineNum">     322 </span>            :     }</a>
-<a name="323"><span class="lineNum">     323 </span>            :     </a>
-<a name="324"><span class="lineNum">     324 </span><span class="lineNoCov">          0 :     function swapTokensForExactETH(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)</span></a>
-<a name="325"><span class="lineNum">     325 </span>            :         external</a>
-<a name="326"><span class="lineNum">     326 </span>            :         virtual</a>
-<a name="327"><span class="lineNum">     327 </span>            :         override</a>
-<a name="328"><span class="lineNum">     328 </span>            :         ensure(deadline)</a>
-<a name="329"><span class="lineNum">     329 </span>            :         returns (uint[] memory amounts)</a>
-<a name="330"><span class="lineNum">     330 </span>            :     {</a>
-<a name="331"><span class="lineNum">     331 </span><span class="lineNoCov">          0 :         require(path[path.length - 1] == WETH, 'UniswapV2Router: INVALID_PATH');</span></a>
-<a name="332"><span class="lineNum">     332 </span><span class="lineNoCov">          0 :         amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);</span></a>
-<a name="333"><span class="lineNum">     333 </span><span class="lineNoCov">          0 :         require(amounts[0] &lt;= amountInMax, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');</span></a>
-<a name="334"><span class="lineNum">     334 </span>            :         </a>
-<a name="335"><span class="lineNum">     335 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
-<a name="336"><span class="lineNum">     336 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
-<a name="337"><span class="lineNum">     337 </span>            :         </a>
-<a name="338"><span class="lineNum">     338 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferFrom(path[0], msg.sender, pair, amounts[0]);</span></a>
-<a name="339"><span class="lineNum">     339 </span><span class="lineNoCov">          0 :         _swap(amounts, path, address(this));</span></a>
-<a name="340"><span class="lineNum">     340 </span><span class="lineNoCov">          0 :         IWETH(WETH).withdraw(amounts[amounts.length - 1]);</span></a>
-<a name="341"><span class="lineNum">     341 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);</span></a>
-<a name="342"><span class="lineNum">     342 </span>            :     }</a>
-<a name="343"><span class="lineNum">     343 </span>            :     </a>
-<a name="344"><span class="lineNum">     344 </span><span class="lineNoCov">          0 :     function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)</span></a>
-<a name="345"><span class="lineNum">     345 </span>            :         external</a>
-<a name="346"><span class="lineNum">     346 </span>            :         virtual</a>
-<a name="347"><span class="lineNum">     347 </span>            :         override</a>
-<a name="348"><span class="lineNum">     348 </span>            :         ensure(deadline)</a>
-<a name="349"><span class="lineNum">     349 </span>            :         returns (uint[] memory amounts)</a>
-<a name="350"><span class="lineNum">     350 </span>            :     {</a>
-<a name="351"><span class="lineNum">     351 </span><span class="lineNoCov">          0 :         require(path[path.length - 1] == WETH, 'UniswapV2Router: INVALID_PATH');</span></a>
-<a name="352"><span class="lineNum">     352 </span><span class="lineNoCov">          0 :         amounts = UniswapV2Library.getAmountsOut(factory, amountIn, path);</span></a>
-<a name="353"><span class="lineNum">     353 </span><span class="lineNoCov">          0 :         require(amounts[amounts.length - 1] &gt;= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');</span></a>
-<a name="354"><span class="lineNum">     354 </span>            :         </a>
-<a name="355"><span class="lineNum">     355 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
-<a name="356"><span class="lineNum">     356 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
-<a name="357"><span class="lineNum">     357 </span>            :         </a>
-<a name="358"><span class="lineNum">     358 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferFrom(path[0], msg.sender, pair, amounts[0]);</span></a>
-<a name="359"><span class="lineNum">     359 </span><span class="lineNoCov">          0 :         _swap(amounts, path, address(this));</span></a>
-<a name="360"><span class="lineNum">     360 </span><span class="lineNoCov">          0 :         IWETH(WETH).withdraw(amounts[amounts.length - 1]);</span></a>
-<a name="361"><span class="lineNum">     361 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);</span></a>
-<a name="362"><span class="lineNum">     362 </span>            :     }</a>
-<a name="363"><span class="lineNum">     363 </span>            :     </a>
-<a name="364"><span class="lineNum">     364 </span><span class="lineNoCov">          0 :     function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline)</span></a>
-<a name="365"><span class="lineNum">     365 </span>            :         external</a>
-<a name="366"><span class="lineNum">     366 </span>            :         virtual</a>
-<a name="367"><span class="lineNum">     367 </span>            :         override</a>
-<a name="368"><span class="lineNum">     368 </span>            :         payable</a>
-<a name="369"><span class="lineNum">     369 </span>            :         ensure(deadline)</a>
-<a name="370"><span class="lineNum">     370 </span>            :         returns (uint[] memory amounts)</a>
-<a name="371"><span class="lineNum">     371 </span>            :     {</a>
-<a name="372"><span class="lineNum">     372 </span><span class="lineNoCov">          0 :         require(path[0] == WETH, 'UniswapV2Router: INVALID_PATH');</span></a>
-<a name="373"><span class="lineNum">     373 </span><span class="lineNoCov">          0 :         amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);</span></a>
-<a name="374"><span class="lineNum">     374 </span><span class="lineNoCov">          0 :         require(amounts[0] &lt;= msg.value, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');</span></a>
-<a name="375"><span class="lineNum">     375 </span>            :         </a>
-<a name="376"><span class="lineNum">     376 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
-<a name="377"><span class="lineNum">     377 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
-<a name="378"><span class="lineNum">     378 </span>            :         </a>
-<a name="379"><span class="lineNum">     379 </span><span class="lineNoCov">          0 :         IWETH(WETH).deposit{value: amounts[0]}();</span></a>
-<a name="380"><span class="lineNum">     380 </span><span class="lineNoCov">          0 :         assert(IWETH(WETH).transfer(pair, amounts[0]));</span></a>
-<a name="381"><span class="lineNum">     381 </span><span class="lineNoCov">          0 :         _swap(amounts, path, to);</span></a>
-<a name="382"><span class="lineNum">     382 </span>            :         // refund dust eth, if any</a>
-<a name="383"><span class="lineNum">     383 </span><span class="lineNoCov">          0 :         if (msg.value &gt; amounts[0]) TransferHelper.safeTransferETH(msg.sender, msg.value - amounts[0]);</span></a>
-<a name="384"><span class="lineNum">     384 </span>            :     }</a>
-<a name="385"><span class="lineNum">     385 </span>            : </a>
-<a name="386"><span class="lineNum">     386 </span>            :     // **** SWAP (supporting fee-on-transfer tokens) ****</a>
-<a name="387"><span class="lineNum">     387 </span>            :     // requires the initial amount to have already been sent to the first pair</a>
-<a name="388"><span class="lineNum">     388 </span><span class="lineNoCov">          0 :     function _swapSupportingFeeOnTransferTokens(address[] memory path, address _to) internal virtual {</span></a>
-<a name="389"><span class="lineNum">     389 </span><span class="lineNoCov">          0 :         for (uint i; i &lt; path.length - 1; i++) {</span></a>
-<a name="390"><span class="lineNum">     390 </span><span class="lineNoCov">          0 :             (address input, address output) = (path[i], path[i + 1]);</span></a>
-<a name="391"><span class="lineNum">     391 </span><span class="lineNoCov">          0 :             (address token0,) = UniswapV2Library.sortTokens(input, output);</span></a>
-<a name="392"><span class="lineNum">     392 </span>            :             </a>
-<a name="393"><span class="lineNum">     393 </span><span class="lineNoCov">          0 :             address pair = IUniswapV2Factory(factory).getPair(input, output);</span></a>
-<a name="394"><span class="lineNum">     394 </span><span class="lineNoCov">          0 :             require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
-<a name="395"><span class="lineNum">     395 </span>            :             </a>
-<a name="396"><span class="lineNum">     396 </span><span class="lineNoCov">          0 :             IUniswapV2Pair pairContract = IUniswapV2Pair(pair);</span></a>
-<a name="397"><span class="lineNum">     397 </span><span class="lineNoCov">          0 :             uint amountInput;</span></a>
-<a name="398"><span class="lineNum">     398 </span><span class="lineNoCov">          0 :             uint amountOutput;</span></a>
-<a name="399"><span class="lineNum">     399 </span>            :             { // scope to avoid stack too deep errors</a>
-<a name="400"><span class="lineNum">     400 </span><span class="lineNoCov">          0 :                 (uint reserve0, uint reserve1,) = pairContract.getReserves();</span></a>
-<a name="401"><span class="lineNum">     401 </span><span class="lineNoCov">          0 :                 (uint reserveInput, uint reserveOutput) = input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);</span></a>
-<a name="402"><span class="lineNum">     402 </span><span class="lineNoCov">          0 :                 amountInput = IERC20(input).balanceOf(address(pair)) - reserveInput;</span></a>
-<a name="403"><span class="lineNum">     403 </span><span class="lineNoCov">          0 :                 amountOutput = UniswapV2Library.getAmountOut(amountInput, reserveInput, reserveOutput);</span></a>
-<a name="404"><span class="lineNum">     404 </span>            :             }</a>
-<a name="405"><span class="lineNum">     405 </span><span class="lineNoCov">          0 :             (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOutput) : (amountOutput, uint(0));</span></a>
-<a name="406"><span class="lineNum">     406 </span>            :             </a>
-<a name="407"><span class="lineNum">     407 </span><span class="lineNoCov">          0 :             address to;</span></a>
-<a name="408"><span class="lineNum">     408 </span><span class="lineNoCov">          0 :             if (i &lt; path.length - 2) {</span></a>
-<a name="409"><span class="lineNum">     409 </span><span class="lineNoCov">          0 :                 to = IUniswapV2Factory(factory).getPair(output, path[i + 2]);</span></a>
-<a name="410"><span class="lineNum">     410 </span><span class="lineNoCov">          0 :                 require(to != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
-<a name="411"><span class="lineNum">     411 </span>            :             } else {</a>
-<a name="412"><span class="lineNum">     412 </span><span class="lineNoCov">          0 :                 to = _to;</span></a>
-<a name="413"><span class="lineNum">     413 </span>            :             }</a>
-<a name="414"><span class="lineNum">     414 </span>            :             </a>
-<a name="415"><span class="lineNum">     415 </span><span class="lineNoCov">          0 :             pairContract.swap(amount0Out, amount1Out, to, new bytes(0));</span></a>
-<a name="416"><span class="lineNum">     416 </span>            :         }</a>
-<a name="417"><span class="lineNum">     417 </span>            :     }</a>
-<a name="418"><span class="lineNum">     418 </span>            :     </a>
-<a name="419"><span class="lineNum">     419 </span><span class="lineNoCov">          0 :     function swapExactTokensForTokensSupportingFeeOnTransferTokens(</span></a>
-<a name="420"><span class="lineNum">     420 </span>            :         uint amountIn,</a>
-<a name="421"><span class="lineNum">     421 </span>            :         uint amountOutMin,</a>
-<a name="422"><span class="lineNum">     422 </span>            :         address[] calldata path,</a>
-<a name="423"><span class="lineNum">     423 </span>            :         address to,</a>
-<a name="424"><span class="lineNum">     424 </span>            :         uint deadline</a>
-<a name="425"><span class="lineNum">     425 </span>            :     ) external virtual override ensure(deadline) {</a>
-<a name="426"><span class="lineNum">     426 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
-<a name="427"><span class="lineNum">     427 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
-<a name="428"><span class="lineNum">     428 </span>            :         </a>
-<a name="429"><span class="lineNum">     429 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferFrom(path[0], msg.sender, pair, amountIn);</span></a>
-<a name="430"><span class="lineNum">     430 </span><span class="lineNoCov">          0 :         uint balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);</span></a>
-<a name="431"><span class="lineNum">     431 </span><span class="lineNoCov">          0 :         _swapSupportingFeeOnTransferTokens(path, to);</span></a>
-<a name="432"><span class="lineNum">     432 </span><span class="lineNoCov">          0 :         require(</span></a>
-<a name="433"><span class="lineNum">     433 </span>            :             IERC20(path[path.length - 1]).balanceOf(to) - balanceBefore &gt;= amountOutMin,</a>
-<a name="434"><span class="lineNum">     434 </span>            :             'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT'</a>
-<a name="435"><span class="lineNum">     435 </span>            :         );</a>
-<a name="436"><span class="lineNum">     436 </span>            :     }</a>
-<a name="437"><span class="lineNum">     437 </span>            :     </a>
-<a name="438"><span class="lineNum">     438 </span><span class="lineNoCov">          0 :     function swapExactETHForTokensSupportingFeeOnTransferTokens(</span></a>
-<a name="439"><span class="lineNum">     439 </span>            :         uint amountOutMin,</a>
-<a name="440"><span class="lineNum">     440 </span>            :         address[] calldata path,</a>
-<a name="441"><span class="lineNum">     441 </span>            :         address to,</a>
-<a name="442"><span class="lineNum">     442 </span>            :         uint deadline</a>
-<a name="443"><span class="lineNum">     443 </span>            :     )</a>
-<a name="444"><span class="lineNum">     444 </span>            :         external</a>
-<a name="445"><span class="lineNum">     445 </span>            :         virtual</a>
-<a name="446"><span class="lineNum">     446 </span>            :         override</a>
-<a name="447"><span class="lineNum">     447 </span>            :         payable</a>
-<a name="448"><span class="lineNum">     448 </span>            :         ensure(deadline)</a>
-<a name="449"><span class="lineNum">     449 </span>            :     {</a>
-<a name="450"><span class="lineNum">     450 </span><span class="lineNoCov">          0 :         require(path[0] == WETH, 'UniswapV2Router: INVALID_PATH');</span></a>
-<a name="451"><span class="lineNum">     451 </span><span class="lineNoCov">          0 :         uint amountIn = msg.value;</span></a>
-<a name="452"><span class="lineNum">     452 </span>            :         </a>
-<a name="453"><span class="lineNum">     453 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
-<a name="454"><span class="lineNum">     454 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
-<a name="455"><span class="lineNum">     455 </span>            :         </a>
-<a name="456"><span class="lineNum">     456 </span><span class="lineNoCov">          0 :         IWETH(WETH).deposit{value: amountIn}();</span></a>
-<a name="457"><span class="lineNum">     457 </span><span class="lineNoCov">          0 :         assert(IWETH(WETH).transfer(pair, amountIn));</span></a>
-<a name="458"><span class="lineNum">     458 </span><span class="lineNoCov">          0 :         uint balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);</span></a>
-<a name="459"><span class="lineNum">     459 </span><span class="lineNoCov">          0 :         _swapSupportingFeeOnTransferTokens(path, to);</span></a>
-<a name="460"><span class="lineNum">     460 </span><span class="lineNoCov">          0 :         require(</span></a>
-<a name="461"><span class="lineNum">     461 </span>            :             IERC20(path[path.length - 1]).balanceOf(to) - balanceBefore &gt;= amountOutMin,</a>
-<a name="462"><span class="lineNum">     462 </span>            :             'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT'</a>
-<a name="463"><span class="lineNum">     463 </span>            :         );</a>
-<a name="464"><span class="lineNum">     464 </span>            :     }</a>
-<a name="465"><span class="lineNum">     465 </span>            :     </a>
-<a name="466"><span class="lineNum">     466 </span><span class="lineNoCov">          0 :     function swapExactTokensForETHSupportingFeeOnTransferTokens(</span></a>
-<a name="467"><span class="lineNum">     467 </span>            :         uint amountIn,</a>
-<a name="468"><span class="lineNum">     468 </span>            :         uint amountOutMin,</a>
-<a name="469"><span class="lineNum">     469 </span>            :         address[] calldata path,</a>
-<a name="470"><span class="lineNum">     470 </span>            :         address to,</a>
-<a name="471"><span class="lineNum">     471 </span>            :         uint deadline</a>
-<a name="472"><span class="lineNum">     472 </span>            :     )</a>
-<a name="473"><span class="lineNum">     473 </span>            :         external</a>
-<a name="474"><span class="lineNum">     474 </span>            :         virtual</a>
-<a name="475"><span class="lineNum">     475 </span>            :         override</a>
-<a name="476"><span class="lineNum">     476 </span>            :         ensure(deadline)</a>
-<a name="477"><span class="lineNum">     477 </span>            :     {</a>
-<a name="478"><span class="lineNum">     478 </span><span class="lineNoCov">          0 :         require(path[path.length - 1] == WETH, 'UniswapV2Router: INVALID_PATH');</span></a>
-<a name="479"><span class="lineNum">     479 </span>            :         </a>
-<a name="480"><span class="lineNum">     480 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
-<a name="481"><span class="lineNum">     481 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
-<a name="482"><span class="lineNum">     482 </span>            :         </a>
-<a name="483"><span class="lineNum">     483 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferFrom(path[0], msg.sender, pair, amountIn);</span></a>
-<a name="484"><span class="lineNum">     484 </span><span class="lineNoCov">          0 :         _swapSupportingFeeOnTransferTokens(path, address(this));</span></a>
-<a name="485"><span class="lineNum">     485 </span><span class="lineNoCov">          0 :         uint amountOut = IERC20(WETH).balanceOf(address(this));</span></a>
-<a name="486"><span class="lineNum">     486 </span><span class="lineNoCov">          0 :         require(amountOut &gt;= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');</span></a>
-<a name="487"><span class="lineNum">     487 </span><span class="lineNoCov">          0 :         IWETH(WETH).withdraw(amountOut);</span></a>
-<a name="488"><span class="lineNum">     488 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferETH(to, amountOut);</span></a>
-<a name="489"><span class="lineNum">     489 </span>            :     }</a>
-<a name="490"><span class="lineNum">     490 </span>            : </a>
-<a name="491"><span class="lineNum">     491 </span>            :     // **** LIBRARY FUNCTIONS ****</a>
-<a name="492"><span class="lineNum">     492 </span><span class="lineNoCov">          0 :     function quote(uint amountA, uint reserveA, uint reserveB) public pure virtual override returns (uint amountB) {</span></a>
-<a name="493"><span class="lineNum">     493 </span><span class="lineNoCov">          0 :         return UniswapV2Library.quote(amountA, reserveA, reserveB);</span></a>
-<a name="494"><span class="lineNum">     494 </span>            :     }</a>
-<a name="495"><span class="lineNum">     495 </span>            : </a>
-<a name="496"><span class="lineNum">     496 </span><span class="lineNoCov">          0 :     function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut)</span></a>
-<a name="497"><span class="lineNum">     497 </span>            :         public</a>
-<a name="498"><span class="lineNum">     498 </span>            :         pure</a>
-<a name="499"><span class="lineNum">     499 </span>            :         virtual</a>
-<a name="500"><span class="lineNum">     500 </span>            :         override</a>
-<a name="501"><span class="lineNum">     501 </span>            :         returns (uint amountOut)</a>
-<a name="502"><span class="lineNum">     502 </span>            :     {</a>
-<a name="503"><span class="lineNum">     503 </span><span class="lineNoCov">          0 :         return UniswapV2Library.getAmountOut(amountIn, reserveIn, reserveOut);</span></a>
-<a name="504"><span class="lineNum">     504 </span>            :     }</a>
-<a name="505"><span class="lineNum">     505 </span>            : </a>
-<a name="506"><span class="lineNum">     506 </span><span class="lineNoCov">          0 :     function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut)</span></a>
-<a name="507"><span class="lineNum">     507 </span>            :         public</a>
-<a name="508"><span class="lineNum">     508 </span>            :         pure</a>
-<a name="509"><span class="lineNum">     509 </span>            :         virtual</a>
-<a name="510"><span class="lineNum">     510 </span>            :         override</a>
-<a name="511"><span class="lineNum">     511 </span>            :         returns (uint amountIn)</a>
-<a name="512"><span class="lineNum">     512 </span>            :     {</a>
-<a name="513"><span class="lineNum">     513 </span><span class="lineNoCov">          0 :         return UniswapV2Library.getAmountIn(amountOut, reserveIn, reserveOut);</span></a>
-<a name="514"><span class="lineNum">     514 </span>            :     }</a>
-<a name="515"><span class="lineNum">     515 </span>            : </a>
-<a name="516"><span class="lineNum">     516 </span><span class="lineNoCov">          0 :     function getAmountsOut(uint amountIn, address[] memory path)</span></a>
-<a name="517"><span class="lineNum">     517 </span>            :         public</a>
-<a name="518"><span class="lineNum">     518 </span>            :         view</a>
-<a name="519"><span class="lineNum">     519 </span>            :         virtual</a>
-<a name="520"><span class="lineNum">     520 </span>            :         override</a>
-<a name="521"><span class="lineNum">     521 </span>            :         returns (uint[] memory amounts)</a>
-<a name="522"><span class="lineNum">     522 </span>            :     {</a>
-<a name="523"><span class="lineNum">     523 </span><span class="lineNoCov">          0 :         return UniswapV2Library.getAmountsOut(factory, amountIn, path);</span></a>
-<a name="524"><span class="lineNum">     524 </span>            :     }</a>
-<a name="525"><span class="lineNum">     525 </span>            : </a>
-<a name="526"><span class="lineNum">     526 </span><span class="lineNoCov">          0 :     function getAmountsIn(uint amountOut, address[] memory path)</span></a>
-<a name="527"><span class="lineNum">     527 </span>            :         public</a>
-<a name="528"><span class="lineNum">     528 </span>            :         view</a>
-<a name="529"><span class="lineNum">     529 </span>            :         virtual</a>
-<a name="530"><span class="lineNum">     530 </span>            :         override</a>
-<a name="531"><span class="lineNum">     531 </span>            :         returns (uint[] memory amounts)</a>
-<a name="532"><span class="lineNum">     532 </span>            :     {</a>
-<a name="533"><span class="lineNum">     533 </span><span class="lineNoCov">          0 :         return UniswapV2Library.getAmountsIn(factory, amountOut, path);</span></a>
-<a name="534"><span class="lineNum">     534 </span>            :     }</a>
-<a name="535"><span class="lineNum">     535 </span>            : }</a>
+<a name="270"><span class="lineNum">     270 </span><span class="lineNoCov">          0 :         require(path.length &gt;= 2, 'UniswapV2Router: INVALID_PATH');</span></a>
+<a name="271"><span class="lineNum">     271 </span><span class="lineNoCov">          0 :         amounts = UniswapV2Library.getAmountsOut(factory, amountIn, path);</span></a>
+<a name="272"><span class="lineNum">     272 </span><span class="lineNoCov">          0 :         require(amounts[amounts.length - 1] &gt;= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');</span></a>
+<a name="273"><span class="lineNum">     273 </span>            :         </a>
+<a name="274"><span class="lineNum">     274 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
+<a name="275"><span class="lineNum">     275 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
+<a name="276"><span class="lineNum">     276 </span>            :         </a>
+<a name="277"><span class="lineNum">     277 </span><span class="lineNoCov">          0 :         IERC20(path[0]).transferFrom(msg.sender, pair, amounts[0]);</span></a>
+<a name="278"><span class="lineNum">     278 </span><span class="lineNoCov">          0 :         _swap(amounts, path, to);</span></a>
+<a name="279"><span class="lineNum">     279 </span>            :     }</a>
+<a name="280"><span class="lineNum">     280 </span>            :     </a>
+<a name="281"><span class="lineNum">     281 </span><span class="lineNoCov">          0 :     function swapTokensForExactTokens(</span></a>
+<a name="282"><span class="lineNum">     282 </span>            :         uint amountOut,</a>
+<a name="283"><span class="lineNum">     283 </span>            :         uint amountInMax,</a>
+<a name="284"><span class="lineNum">     284 </span>            :         address[] calldata path,</a>
+<a name="285"><span class="lineNum">     285 </span>            :         address to,</a>
+<a name="286"><span class="lineNum">     286 </span>            :         uint deadline</a>
+<a name="287"><span class="lineNum">     287 </span>            :     ) external virtual override ensure(deadline) returns (uint[] memory amounts) {</a>
+<a name="288"><span class="lineNum">     288 </span><span class="lineNoCov">          0 :         require(path.length &gt;= 2, 'UniswapV2Router: INVALID_PATH');</span></a>
+<a name="289"><span class="lineNum">     289 </span><span class="lineNoCov">          0 :         amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);</span></a>
+<a name="290"><span class="lineNum">     290 </span><span class="lineNoCov">          0 :         require(amounts[0] &lt;= amountInMax, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');</span></a>
+<a name="291"><span class="lineNum">     291 </span>            :         </a>
+<a name="292"><span class="lineNum">     292 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
+<a name="293"><span class="lineNum">     293 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
+<a name="294"><span class="lineNum">     294 </span>            :         </a>
+<a name="295"><span class="lineNum">     295 </span><span class="lineNoCov">          0 :         IERC20(path[0]).transferFrom(msg.sender, pair, amounts[0]);</span></a>
+<a name="296"><span class="lineNum">     296 </span><span class="lineNoCov">          0 :         _swap(amounts, path, to);</span></a>
+<a name="297"><span class="lineNum">     297 </span>            :     }</a>
+<a name="298"><span class="lineNum">     298 </span>            : </a>
+<a name="299"><span class="lineNum">     299 </span><span class="lineNoCov">          0 :     function swapExactETHForTokens(</span></a>
+<a name="300"><span class="lineNum">     300 </span>            :         uint amountOutMin,</a>
+<a name="301"><span class="lineNum">     301 </span>            :         address[] calldata path,</a>
+<a name="302"><span class="lineNum">     302 </span>            :         address to,</a>
+<a name="303"><span class="lineNum">     303 </span>            :         uint deadline</a>
+<a name="304"><span class="lineNum">     304 </span>            :     )</a>
+<a name="305"><span class="lineNum">     305 </span>            :         external</a>
+<a name="306"><span class="lineNum">     306 </span>            :         virtual</a>
+<a name="307"><span class="lineNum">     307 </span>            :         override</a>
+<a name="308"><span class="lineNum">     308 </span>            :         payable</a>
+<a name="309"><span class="lineNum">     309 </span>            :         ensure(deadline)</a>
+<a name="310"><span class="lineNum">     310 </span>            :         returns (uint[] memory amounts)</a>
+<a name="311"><span class="lineNum">     311 </span>            :     {</a>
+<a name="312"><span class="lineNum">     312 </span><span class="lineNoCov">          0 :         require(path[0] == WETH, 'UniswapV2Router: INVALID_PATH');</span></a>
+<a name="313"><span class="lineNum">     313 </span><span class="lineNoCov">          0 :         amounts = UniswapV2Library.getAmountsOut(factory, msg.value, path);</span></a>
+<a name="314"><span class="lineNum">     314 </span><span class="lineNoCov">          0 :         require(amounts[amounts.length - 1] &gt;= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');</span></a>
+<a name="315"><span class="lineNum">     315 </span>            :         </a>
+<a name="316"><span class="lineNum">     316 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
+<a name="317"><span class="lineNum">     317 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
+<a name="318"><span class="lineNum">     318 </span>            :         </a>
+<a name="319"><span class="lineNum">     319 </span><span class="lineNoCov">          0 :         IWETH(WETH).deposit{value: amounts[0]}();</span></a>
+<a name="320"><span class="lineNum">     320 </span><span class="lineNoCov">          0 :         assert(IWETH(WETH).transfer(pair, amounts[0]));</span></a>
+<a name="321"><span class="lineNum">     321 </span><span class="lineNoCov">          0 :         _swap(amounts, path, to);</span></a>
+<a name="322"><span class="lineNum">     322 </span>            :         // refund dust eth, if any</a>
+<a name="323"><span class="lineNum">     323 </span><span class="lineNoCov">          0 :         if (msg.value &gt; amounts[0]) TransferHelper.safeTransferETH(msg.sender, msg.value - amounts[0]);</span></a>
+<a name="324"><span class="lineNum">     324 </span>            :     }</a>
+<a name="325"><span class="lineNum">     325 </span>            :     </a>
+<a name="326"><span class="lineNum">     326 </span><span class="lineNoCov">          0 :     function swapTokensForExactETH(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)</span></a>
+<a name="327"><span class="lineNum">     327 </span>            :         external</a>
+<a name="328"><span class="lineNum">     328 </span>            :         virtual</a>
+<a name="329"><span class="lineNum">     329 </span>            :         override</a>
+<a name="330"><span class="lineNum">     330 </span>            :         ensure(deadline)</a>
+<a name="331"><span class="lineNum">     331 </span>            :         returns (uint[] memory amounts)</a>
+<a name="332"><span class="lineNum">     332 </span>            :     {</a>
+<a name="333"><span class="lineNum">     333 </span><span class="lineNoCov">          0 :         require(path[path.length - 1] == WETH, 'UniswapV2Router: INVALID_PATH');</span></a>
+<a name="334"><span class="lineNum">     334 </span><span class="lineNoCov">          0 :         amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);</span></a>
+<a name="335"><span class="lineNum">     335 </span><span class="lineNoCov">          0 :         require(amounts[0] &lt;= amountInMax, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');</span></a>
+<a name="336"><span class="lineNum">     336 </span>            :         </a>
+<a name="337"><span class="lineNum">     337 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
+<a name="338"><span class="lineNum">     338 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
+<a name="339"><span class="lineNum">     339 </span>            :         </a>
+<a name="340"><span class="lineNum">     340 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferFrom(path[0], msg.sender, pair, amounts[0]);</span></a>
+<a name="341"><span class="lineNum">     341 </span><span class="lineNoCov">          0 :         _swap(amounts, path, address(this));</span></a>
+<a name="342"><span class="lineNum">     342 </span><span class="lineNoCov">          0 :         IWETH(WETH).withdraw(amounts[amounts.length - 1]);</span></a>
+<a name="343"><span class="lineNum">     343 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);</span></a>
+<a name="344"><span class="lineNum">     344 </span>            :     }</a>
+<a name="345"><span class="lineNum">     345 </span>            :     </a>
+<a name="346"><span class="lineNum">     346 </span><span class="lineNoCov">          0 :     function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)</span></a>
+<a name="347"><span class="lineNum">     347 </span>            :         external</a>
+<a name="348"><span class="lineNum">     348 </span>            :         virtual</a>
+<a name="349"><span class="lineNum">     349 </span>            :         override</a>
+<a name="350"><span class="lineNum">     350 </span>            :         ensure(deadline)</a>
+<a name="351"><span class="lineNum">     351 </span>            :         returns (uint[] memory amounts)</a>
+<a name="352"><span class="lineNum">     352 </span>            :     {</a>
+<a name="353"><span class="lineNum">     353 </span><span class="lineNoCov">          0 :         require(path[path.length - 1] == WETH, 'UniswapV2Router: INVALID_PATH');</span></a>
+<a name="354"><span class="lineNum">     354 </span><span class="lineNoCov">          0 :         amounts = UniswapV2Library.getAmountsOut(factory, amountIn, path);</span></a>
+<a name="355"><span class="lineNum">     355 </span><span class="lineNoCov">          0 :         require(amounts[amounts.length - 1] &gt;= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');</span></a>
+<a name="356"><span class="lineNum">     356 </span>            :         </a>
+<a name="357"><span class="lineNum">     357 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
+<a name="358"><span class="lineNum">     358 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
+<a name="359"><span class="lineNum">     359 </span>            :         </a>
+<a name="360"><span class="lineNum">     360 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferFrom(path[0], msg.sender, pair, amounts[0]);</span></a>
+<a name="361"><span class="lineNum">     361 </span><span class="lineNoCov">          0 :         _swap(amounts, path, address(this));</span></a>
+<a name="362"><span class="lineNum">     362 </span><span class="lineNoCov">          0 :         IWETH(WETH).withdraw(amounts[amounts.length - 1]);</span></a>
+<a name="363"><span class="lineNum">     363 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);</span></a>
+<a name="364"><span class="lineNum">     364 </span>            :     }</a>
+<a name="365"><span class="lineNum">     365 </span>            :     </a>
+<a name="366"><span class="lineNum">     366 </span><span class="lineNoCov">          0 :     function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline)</span></a>
+<a name="367"><span class="lineNum">     367 </span>            :         external</a>
+<a name="368"><span class="lineNum">     368 </span>            :         virtual</a>
+<a name="369"><span class="lineNum">     369 </span>            :         override</a>
+<a name="370"><span class="lineNum">     370 </span>            :         payable</a>
+<a name="371"><span class="lineNum">     371 </span>            :         ensure(deadline)</a>
+<a name="372"><span class="lineNum">     372 </span>            :         returns (uint[] memory amounts)</a>
+<a name="373"><span class="lineNum">     373 </span>            :     {</a>
+<a name="374"><span class="lineNum">     374 </span><span class="lineNoCov">          0 :         require(path[0] == WETH, 'UniswapV2Router: INVALID_PATH');</span></a>
+<a name="375"><span class="lineNum">     375 </span><span class="lineNoCov">          0 :         amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);</span></a>
+<a name="376"><span class="lineNum">     376 </span><span class="lineNoCov">          0 :         require(amounts[0] &lt;= msg.value, 'UniswapV2Router: EXCESSIVE_INPUT_AMOUNT');</span></a>
+<a name="377"><span class="lineNum">     377 </span>            :         </a>
+<a name="378"><span class="lineNum">     378 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
+<a name="379"><span class="lineNum">     379 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
+<a name="380"><span class="lineNum">     380 </span>            :         </a>
+<a name="381"><span class="lineNum">     381 </span><span class="lineNoCov">          0 :         IWETH(WETH).deposit{value: amounts[0]}();</span></a>
+<a name="382"><span class="lineNum">     382 </span><span class="lineNoCov">          0 :         assert(IWETH(WETH).transfer(pair, amounts[0]));</span></a>
+<a name="383"><span class="lineNum">     383 </span><span class="lineNoCov">          0 :         _swap(amounts, path, to);</span></a>
+<a name="384"><span class="lineNum">     384 </span>            :         // refund dust eth, if any</a>
+<a name="385"><span class="lineNum">     385 </span><span class="lineNoCov">          0 :         if (msg.value &gt; amounts[0]) TransferHelper.safeTransferETH(msg.sender, msg.value - amounts[0]);</span></a>
+<a name="386"><span class="lineNum">     386 </span>            :     }</a>
+<a name="387"><span class="lineNum">     387 </span>            : </a>
+<a name="388"><span class="lineNum">     388 </span>            :     // **** SWAP (supporting fee-on-transfer tokens) ****</a>
+<a name="389"><span class="lineNum">     389 </span>            :     // requires the initial amount to have already been sent to the first pair</a>
+<a name="390"><span class="lineNum">     390 </span><span class="lineNoCov">          0 :     function _swapSupportingFeeOnTransferTokens(address[] memory path, address _to) internal virtual {</span></a>
+<a name="391"><span class="lineNum">     391 </span><span class="lineNoCov">          0 :         for (uint i; i &lt; path.length - 1; i++) {</span></a>
+<a name="392"><span class="lineNum">     392 </span><span class="lineNoCov">          0 :             (address input, address output) = (path[i], path[i + 1]);</span></a>
+<a name="393"><span class="lineNum">     393 </span><span class="lineNoCov">          0 :             (address token0,) = UniswapV2Library.sortTokens(input, output);</span></a>
+<a name="394"><span class="lineNum">     394 </span>            :             </a>
+<a name="395"><span class="lineNum">     395 </span><span class="lineNoCov">          0 :             address pair = IUniswapV2Factory(factory).getPair(input, output);</span></a>
+<a name="396"><span class="lineNum">     396 </span><span class="lineNoCov">          0 :             require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
+<a name="397"><span class="lineNum">     397 </span>            :             </a>
+<a name="398"><span class="lineNum">     398 </span><span class="lineNoCov">          0 :             IUniswapV2Pair pairContract = IUniswapV2Pair(pair);</span></a>
+<a name="399"><span class="lineNum">     399 </span><span class="lineNoCov">          0 :             uint amountInput;</span></a>
+<a name="400"><span class="lineNum">     400 </span><span class="lineNoCov">          0 :             uint amountOutput;</span></a>
+<a name="401"><span class="lineNum">     401 </span>            :             { // scope to avoid stack too deep errors</a>
+<a name="402"><span class="lineNum">     402 </span><span class="lineNoCov">          0 :                 (uint reserve0, uint reserve1,) = pairContract.getReserves();</span></a>
+<a name="403"><span class="lineNum">     403 </span><span class="lineNoCov">          0 :                 (uint reserveInput, uint reserveOutput) = input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);</span></a>
+<a name="404"><span class="lineNum">     404 </span><span class="lineNoCov">          0 :                 amountInput = IERC20(input).balanceOf(address(pair)) - reserveInput;</span></a>
+<a name="405"><span class="lineNum">     405 </span><span class="lineNoCov">          0 :                 amountOutput = UniswapV2Library.getAmountOut(amountInput, reserveInput, reserveOutput);</span></a>
+<a name="406"><span class="lineNum">     406 </span>            :             }</a>
+<a name="407"><span class="lineNum">     407 </span><span class="lineNoCov">          0 :             (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOutput) : (amountOutput, uint(0));</span></a>
+<a name="408"><span class="lineNum">     408 </span>            :             </a>
+<a name="409"><span class="lineNum">     409 </span><span class="lineNoCov">          0 :             address to;</span></a>
+<a name="410"><span class="lineNum">     410 </span><span class="lineNoCov">          0 :             if (i &lt; path.length - 2) {</span></a>
+<a name="411"><span class="lineNum">     411 </span><span class="lineNoCov">          0 :                 to = IUniswapV2Factory(factory).getPair(output, path[i + 2]);</span></a>
+<a name="412"><span class="lineNum">     412 </span><span class="lineNoCov">          0 :                 require(to != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
+<a name="413"><span class="lineNum">     413 </span>            :             } else {</a>
+<a name="414"><span class="lineNum">     414 </span><span class="lineNoCov">          0 :                 to = _to;</span></a>
+<a name="415"><span class="lineNum">     415 </span>            :             }</a>
+<a name="416"><span class="lineNum">     416 </span>            :             </a>
+<a name="417"><span class="lineNum">     417 </span><span class="lineNoCov">          0 :             pairContract.swap(amount0Out, amount1Out, to, new bytes(0));</span></a>
+<a name="418"><span class="lineNum">     418 </span>            :         }</a>
+<a name="419"><span class="lineNum">     419 </span>            :     }</a>
+<a name="420"><span class="lineNum">     420 </span>            :     </a>
+<a name="421"><span class="lineNum">     421 </span><span class="lineNoCov">          0 :     function swapExactTokensForTokensSupportingFeeOnTransferTokens(</span></a>
+<a name="422"><span class="lineNum">     422 </span>            :         uint amountIn,</a>
+<a name="423"><span class="lineNum">     423 </span>            :         uint amountOutMin,</a>
+<a name="424"><span class="lineNum">     424 </span>            :         address[] calldata path,</a>
+<a name="425"><span class="lineNum">     425 </span>            :         address to,</a>
+<a name="426"><span class="lineNum">     426 </span>            :         uint deadline</a>
+<a name="427"><span class="lineNum">     427 </span>            :     ) external virtual override ensure(deadline) {</a>
+<a name="428"><span class="lineNum">     428 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
+<a name="429"><span class="lineNum">     429 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
+<a name="430"><span class="lineNum">     430 </span>            :         </a>
+<a name="431"><span class="lineNum">     431 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferFrom(path[0], msg.sender, pair, amountIn);</span></a>
+<a name="432"><span class="lineNum">     432 </span><span class="lineNoCov">          0 :         uint balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);</span></a>
+<a name="433"><span class="lineNum">     433 </span><span class="lineNoCov">          0 :         _swapSupportingFeeOnTransferTokens(path, to);</span></a>
+<a name="434"><span class="lineNum">     434 </span><span class="lineNoCov">          0 :         require(</span></a>
+<a name="435"><span class="lineNum">     435 </span>            :             IERC20(path[path.length - 1]).balanceOf(to) - balanceBefore &gt;= amountOutMin,</a>
+<a name="436"><span class="lineNum">     436 </span>            :             'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT'</a>
+<a name="437"><span class="lineNum">     437 </span>            :         );</a>
+<a name="438"><span class="lineNum">     438 </span>            :     }</a>
+<a name="439"><span class="lineNum">     439 </span>            :     </a>
+<a name="440"><span class="lineNum">     440 </span><span class="lineNoCov">          0 :     function swapExactETHForTokensSupportingFeeOnTransferTokens(</span></a>
+<a name="441"><span class="lineNum">     441 </span>            :         uint amountOutMin,</a>
+<a name="442"><span class="lineNum">     442 </span>            :         address[] calldata path,</a>
+<a name="443"><span class="lineNum">     443 </span>            :         address to,</a>
+<a name="444"><span class="lineNum">     444 </span>            :         uint deadline</a>
+<a name="445"><span class="lineNum">     445 </span>            :     )</a>
+<a name="446"><span class="lineNum">     446 </span>            :         external</a>
+<a name="447"><span class="lineNum">     447 </span>            :         virtual</a>
+<a name="448"><span class="lineNum">     448 </span>            :         override</a>
+<a name="449"><span class="lineNum">     449 </span>            :         payable</a>
+<a name="450"><span class="lineNum">     450 </span>            :         ensure(deadline)</a>
+<a name="451"><span class="lineNum">     451 </span>            :     {</a>
+<a name="452"><span class="lineNum">     452 </span><span class="lineNoCov">          0 :         require(path[0] == WETH, 'UniswapV2Router: INVALID_PATH');</span></a>
+<a name="453"><span class="lineNum">     453 </span><span class="lineNoCov">          0 :         uint amountIn = msg.value;</span></a>
+<a name="454"><span class="lineNum">     454 </span>            :         </a>
+<a name="455"><span class="lineNum">     455 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
+<a name="456"><span class="lineNum">     456 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
+<a name="457"><span class="lineNum">     457 </span>            :         </a>
+<a name="458"><span class="lineNum">     458 </span><span class="lineNoCov">          0 :         IWETH(WETH).deposit{value: amountIn}();</span></a>
+<a name="459"><span class="lineNum">     459 </span><span class="lineNoCov">          0 :         assert(IWETH(WETH).transfer(pair, amountIn));</span></a>
+<a name="460"><span class="lineNum">     460 </span><span class="lineNoCov">          0 :         uint balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);</span></a>
+<a name="461"><span class="lineNum">     461 </span><span class="lineNoCov">          0 :         _swapSupportingFeeOnTransferTokens(path, to);</span></a>
+<a name="462"><span class="lineNum">     462 </span><span class="lineNoCov">          0 :         require(</span></a>
+<a name="463"><span class="lineNum">     463 </span>            :             IERC20(path[path.length - 1]).balanceOf(to) - balanceBefore &gt;= amountOutMin,</a>
+<a name="464"><span class="lineNum">     464 </span>            :             'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT'</a>
+<a name="465"><span class="lineNum">     465 </span>            :         );</a>
+<a name="466"><span class="lineNum">     466 </span>            :     }</a>
+<a name="467"><span class="lineNum">     467 </span>            :     </a>
+<a name="468"><span class="lineNum">     468 </span><span class="lineNoCov">          0 :     function swapExactTokensForETHSupportingFeeOnTransferTokens(</span></a>
+<a name="469"><span class="lineNum">     469 </span>            :         uint amountIn,</a>
+<a name="470"><span class="lineNum">     470 </span>            :         uint amountOutMin,</a>
+<a name="471"><span class="lineNum">     471 </span>            :         address[] calldata path,</a>
+<a name="472"><span class="lineNum">     472 </span>            :         address to,</a>
+<a name="473"><span class="lineNum">     473 </span>            :         uint deadline</a>
+<a name="474"><span class="lineNum">     474 </span>            :     )</a>
+<a name="475"><span class="lineNum">     475 </span>            :         external</a>
+<a name="476"><span class="lineNum">     476 </span>            :         virtual</a>
+<a name="477"><span class="lineNum">     477 </span>            :         override</a>
+<a name="478"><span class="lineNum">     478 </span>            :         ensure(deadline)</a>
+<a name="479"><span class="lineNum">     479 </span>            :     {</a>
+<a name="480"><span class="lineNum">     480 </span><span class="lineNoCov">          0 :         require(path[path.length - 1] == WETH, 'UniswapV2Router: INVALID_PATH');</span></a>
+<a name="481"><span class="lineNum">     481 </span>            :         </a>
+<a name="482"><span class="lineNum">     482 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(path[0], path[1]);</span></a>
+<a name="483"><span class="lineNum">     483 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
+<a name="484"><span class="lineNum">     484 </span>            :         </a>
+<a name="485"><span class="lineNum">     485 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferFrom(path[0], msg.sender, pair, amountIn);</span></a>
+<a name="486"><span class="lineNum">     486 </span><span class="lineNoCov">          0 :         _swapSupportingFeeOnTransferTokens(path, address(this));</span></a>
+<a name="487"><span class="lineNum">     487 </span><span class="lineNoCov">          0 :         uint amountOut = IERC20(WETH).balanceOf(address(this));</span></a>
+<a name="488"><span class="lineNum">     488 </span><span class="lineNoCov">          0 :         require(amountOut &gt;= amountOutMin, 'UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT');</span></a>
+<a name="489"><span class="lineNum">     489 </span><span class="lineNoCov">          0 :         IWETH(WETH).withdraw(amountOut);</span></a>
+<a name="490"><span class="lineNum">     490 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferETH(to, amountOut);</span></a>
+<a name="491"><span class="lineNum">     491 </span>            :     }</a>
+<a name="492"><span class="lineNum">     492 </span>            : </a>
+<a name="493"><span class="lineNum">     493 </span>            :     // **** LIBRARY FUNCTIONS ****</a>
+<a name="494"><span class="lineNum">     494 </span><span class="lineCov">          4 :     function quote(uint amountA, uint reserveA, uint reserveB) public pure virtual override returns (uint amountB) {</span></a>
+<a name="495"><span class="lineNum">     495 </span><span class="lineCov">          4 :         return UniswapV2Library.quote(amountA, reserveA, reserveB);</span></a>
+<a name="496"><span class="lineNum">     496 </span>            :     }</a>
+<a name="497"><span class="lineNum">     497 </span>            : </a>
+<a name="498"><span class="lineNum">     498 </span><span class="lineCov">          4 :     function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut)</span></a>
+<a name="499"><span class="lineNum">     499 </span>            :         public</a>
+<a name="500"><span class="lineNum">     500 </span>            :         pure</a>
+<a name="501"><span class="lineNum">     501 </span>            :         virtual</a>
+<a name="502"><span class="lineNum">     502 </span>            :         override</a>
+<a name="503"><span class="lineNum">     503 </span>            :         returns (uint amountOut)</a>
+<a name="504"><span class="lineNum">     504 </span>            :     {</a>
+<a name="505"><span class="lineNum">     505 </span><span class="lineCov">          4 :         return UniswapV2Library.getAmountOut(amountIn, reserveIn, reserveOut);</span></a>
+<a name="506"><span class="lineNum">     506 </span>            :     }</a>
+<a name="507"><span class="lineNum">     507 </span>            : </a>
+<a name="508"><span class="lineNum">     508 </span><span class="lineCov">          4 :     function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut)</span></a>
+<a name="509"><span class="lineNum">     509 </span>            :         public</a>
+<a name="510"><span class="lineNum">     510 </span>            :         pure</a>
+<a name="511"><span class="lineNum">     511 </span>            :         virtual</a>
+<a name="512"><span class="lineNum">     512 </span>            :         override</a>
+<a name="513"><span class="lineNum">     513 </span>            :         returns (uint amountIn)</a>
+<a name="514"><span class="lineNum">     514 </span>            :     {</a>
+<a name="515"><span class="lineNum">     515 </span><span class="lineCov">          4 :         return UniswapV2Library.getAmountIn(amountOut, reserveIn, reserveOut);</span></a>
+<a name="516"><span class="lineNum">     516 </span>            :     }</a>
+<a name="517"><span class="lineNum">     517 </span>            : </a>
+<a name="518"><span class="lineNum">     518 </span><span class="lineNoCov">          0 :     function getAmountsOut(uint amountIn, address[] memory path)</span></a>
+<a name="519"><span class="lineNum">     519 </span>            :         public</a>
+<a name="520"><span class="lineNum">     520 </span>            :         view</a>
+<a name="521"><span class="lineNum">     521 </span>            :         virtual</a>
+<a name="522"><span class="lineNum">     522 </span>            :         override</a>
+<a name="523"><span class="lineNum">     523 </span>            :         returns (uint[] memory amounts)</a>
+<a name="524"><span class="lineNum">     524 </span>            :     {</a>
+<a name="525"><span class="lineNum">     525 </span><span class="lineNoCov">          0 :         return UniswapV2Library.getAmountsOut(factory, amountIn, path);</span></a>
+<a name="526"><span class="lineNum">     526 </span>            :     }</a>
+<a name="527"><span class="lineNum">     527 </span>            : </a>
+<a name="528"><span class="lineNum">     528 </span><span class="lineNoCov">          0 :     function getAmountsIn(uint amountOut, address[] memory path)</span></a>
+<a name="529"><span class="lineNum">     529 </span>            :         public</a>
+<a name="530"><span class="lineNum">     530 </span>            :         view</a>
+<a name="531"><span class="lineNum">     531 </span>            :         virtual</a>
+<a name="532"><span class="lineNum">     532 </span>            :         override</a>
+<a name="533"><span class="lineNum">     533 </span>            :         returns (uint[] memory amounts)</a>
+<a name="534"><span class="lineNum">     534 </span>            :     {</a>
+<a name="535"><span class="lineNum">     535 </span><span class="lineNoCov">          0 :         return UniswapV2Library.getAmountsIn(factory, amountOut, path);</span></a>
+<a name="536"><span class="lineNum">     536 </span>            :     }</a>
+<a name="537"><span class="lineNum">     537 </span>            : }</a>
 </pre>
       </td>
     </tr>
