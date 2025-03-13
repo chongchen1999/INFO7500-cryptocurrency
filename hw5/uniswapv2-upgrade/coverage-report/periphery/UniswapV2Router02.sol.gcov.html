@@ -31,18 +31,18 @@
             <td class="headerValue">lcov.info</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntry">34</td>
+            <td class="headerCovTableEntry">62</td>
             <td class="headerCovTableEntry">206</td>
-            <td class="headerCovTableEntryLo">16.5 %</td>
+            <td class="headerCovTableEntryLo">30.1 %</td>
           </tr>
           <tr>
             <td class="headerItem">Date:</td>
-            <td class="headerValue">2025-03-12 18:59:56</td>
+            <td class="headerValue">2025-03-12 20:09:08</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">9</td>
             <td class="headerCovTableEntry">28</td>
-            <td class="headerCovTableEntryLo">14.3 %</td>
+            <td class="headerCovTableEntryLo">32.1 %</td>
           </tr>
           <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
         </table>
@@ -67,7 +67,7 @@
 <a name="5"><span class="lineNum">       5 </span>            : import 'src/libraries/TransferHelper.sol';</a>
 <a name="6"><span class="lineNum">       6 </span>            : </a>
 <a name="7"><span class="lineNum">       7 </span>            : import 'src/periphery/interfaces/IUniswapV2Router02.sol';</a>
-<a name="8"><span class="lineNum">       8 </span>            : import 'src/periphery/libraries/UniswapV2Library.sol';</a>
+<a name="8"><span class="lineNum">       8 </span>            : import 'src/libraries/UniswapV2Library.sol';</a>
 <a name="9"><span class="lineNum">       9 </span>            : import 'src/core/interfaces/IERC20.sol';</a>
 <a name="10"><span class="lineNum">      10 </span>            : import 'src/core/interfaces/IUniswapV2Pair.sol';</a>
 <a name="11"><span class="lineNum">      11 </span>            : import 'src/periphery/interfaces/IWETH.sol';</a>
@@ -76,14 +76,14 @@
 <a name="14"><span class="lineNum">      14 </span>            :     address public immutable override factory;</a>
 <a name="15"><span class="lineNum">      15 </span>            :     address public immutable override WETH;</a>
 <a name="16"><span class="lineNum">      16 </span>            : </a>
-<a name="17"><span class="lineNum">      17 </span><span class="lineNoCov">          0 :     modifier ensure(uint deadline) {</span></a>
-<a name="18"><span class="lineNum">      18 </span><span class="lineNoCov">          0 :         require(deadline &gt;= block.timestamp, 'UniswapV2Router: EXPIRED');</span></a>
+<a name="17"><span class="lineNum">      17 </span><span class="lineCov">          3 :     modifier ensure(uint deadline) {</span></a>
+<a name="18"><span class="lineNum">      18 </span><span class="lineCov">          3 :         require(deadline &gt;= block.timestamp, 'UniswapV2Router: EXPIRED');</span></a>
 <a name="19"><span class="lineNum">      19 </span>            :         _;</a>
 <a name="20"><span class="lineNum">      20 </span>            :     }</a>
 <a name="21"><span class="lineNum">      21 </span>            : </a>
-<a name="22"><span class="lineNum">      22 </span><span class="lineCov">          6 :     constructor(address _factory, address _WETH) {</span></a>
-<a name="23"><span class="lineNum">      23 </span><span class="lineCov">          6 :         factory = _factory;</span></a>
-<a name="24"><span class="lineNum">      24 </span><span class="lineCov">          6 :         WETH = _WETH;</span></a>
+<a name="22"><span class="lineNum">      22 </span><span class="lineCov">         15 :     constructor(address _factory, address _WETH) {</span></a>
+<a name="23"><span class="lineNum">      23 </span><span class="lineCov">         15 :         factory = _factory;</span></a>
+<a name="24"><span class="lineNum">      24 </span><span class="lineCov">         15 :         WETH = _WETH;</span></a>
 <a name="25"><span class="lineNum">      25 </span>            :     }</a>
 <a name="26"><span class="lineNum">      26 </span>            : </a>
 <a name="27"><span class="lineNum">      27 </span><span class="lineNoCov">          0 :     receive() external payable {</span></a>
@@ -181,7 +181,7 @@
 <a name="119"><span class="lineNum">     119 </span>            :     }</a>
 <a name="120"><span class="lineNum">     120 </span>            : </a>
 <a name="121"><span class="lineNum">     121 </span>            :     // **** REMOVE LIQUIDITY ****</a>
-<a name="122"><span class="lineNum">     122 </span><span class="lineNoCov">          0 :     function removeLiquidity(</span></a>
+<a name="122"><span class="lineNum">     122 </span><span class="lineCov">          5 :     function removeLiquidity(</span></a>
 <a name="123"><span class="lineNum">     123 </span>            :         address tokenA,</a>
 <a name="124"><span class="lineNum">     124 </span>            :         address tokenB,</a>
 <a name="125"><span class="lineNum">     125 </span>            :         uint liquidity,</a>
@@ -190,17 +190,17 @@
 <a name="128"><span class="lineNum">     128 </span>            :         address to,</a>
 <a name="129"><span class="lineNum">     129 </span>            :         uint deadline</a>
 <a name="130"><span class="lineNum">     130 </span>            :     ) public virtual override ensure(deadline) returns (uint amountA, uint amountB) {</a>
-<a name="131"><span class="lineNum">     131 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(tokenA, tokenB);</span></a>
-<a name="132"><span class="lineNum">     132 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
-<a name="133"><span class="lineNum">     133 </span><span class="lineNoCov">          0 :         IUniswapV2Pair(pair).get_transferFrom(msg.sender, pair, liquidity); // send liquidity to pair</span></a>
-<a name="134"><span class="lineNum">     134 </span><span class="lineNoCov">          0 :         (uint amount0, uint amount1) = IUniswapV2Pair(pair).burn(to);</span></a>
-<a name="135"><span class="lineNum">     135 </span><span class="lineNoCov">          0 :         (address token0,) = UniswapV2Library.sortTokens(tokenA, tokenB);</span></a>
-<a name="136"><span class="lineNum">     136 </span><span class="lineNoCov">          0 :         (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);</span></a>
-<a name="137"><span class="lineNum">     137 </span><span class="lineNoCov">          0 :         require(amountA &gt;= amountAMin, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');</span></a>
-<a name="138"><span class="lineNum">     138 </span><span class="lineNoCov">          0 :         require(amountB &gt;= amountBMin, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');</span></a>
+<a name="131"><span class="lineNum">     131 </span><span class="lineCov">          7 :         address pair = IUniswapV2Factory(factory).getPair(tokenA, tokenB);</span></a>
+<a name="132"><span class="lineNum">     132 </span><span class="lineCov">          7 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
+<a name="133"><span class="lineNum">     133 </span><span class="lineCov">          6 :         IUniswapV2Pair(pair).get_transferFrom(msg.sender, pair, liquidity); // send liquidity to pair</span></a>
+<a name="134"><span class="lineNum">     134 </span><span class="lineCov">          6 :         (uint amount0, uint amount1) = IUniswapV2Pair(pair).burn(to);</span></a>
+<a name="135"><span class="lineNum">     135 </span><span class="lineCov">          6 :         (address token0,) = UniswapV2Library.sortTokens(tokenA, tokenB);</span></a>
+<a name="136"><span class="lineNum">     136 </span><span class="lineCov">          6 :         (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);</span></a>
+<a name="137"><span class="lineNum">     137 </span><span class="lineCov">          6 :         require(amountA &gt;= amountAMin, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');</span></a>
+<a name="138"><span class="lineNum">     138 </span><span class="lineCov">          5 :         require(amountB &gt;= amountBMin, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');</span></a>
 <a name="139"><span class="lineNum">     139 </span>            :     }</a>
 <a name="140"><span class="lineNum">     140 </span>            :     </a>
-<a name="141"><span class="lineNum">     141 </span><span class="lineNoCov">          0 :     function removeLiquidityETH(</span></a>
+<a name="141"><span class="lineNum">     141 </span><span class="lineCov">          2 :     function removeLiquidityETH(</span></a>
 <a name="142"><span class="lineNum">     142 </span>            :         address token,</a>
 <a name="143"><span class="lineNum">     143 </span>            :         uint liquidity,</a>
 <a name="144"><span class="lineNum">     144 </span>            :         uint amountTokenMin,</a>
@@ -208,7 +208,7 @@
 <a name="146"><span class="lineNum">     146 </span>            :         address to,</a>
 <a name="147"><span class="lineNum">     147 </span>            :         uint deadline</a>
 <a name="148"><span class="lineNum">     148 </span>            :     ) public virtual override ensure(deadline) returns (uint amountToken, uint amountETH) {</a>
-<a name="149"><span class="lineNum">     149 </span><span class="lineNoCov">          0 :         (amountToken, amountETH) = removeLiquidity(</span></a>
+<a name="149"><span class="lineNum">     149 </span><span class="lineCov">          2 :         (amountToken, amountETH) = removeLiquidity(</span></a>
 <a name="150"><span class="lineNum">     150 </span>            :             token,</a>
 <a name="151"><span class="lineNum">     151 </span>            :             WETH,</a>
 <a name="152"><span class="lineNum">     152 </span>            :             liquidity,</a>
@@ -217,12 +217,12 @@
 <a name="155"><span class="lineNum">     155 </span>            :             address(this),</a>
 <a name="156"><span class="lineNum">     156 </span>            :             deadline</a>
 <a name="157"><span class="lineNum">     157 </span>            :         );</a>
-<a name="158"><span class="lineNum">     158 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransfer(token, to, amountToken);</span></a>
-<a name="159"><span class="lineNum">     159 </span><span class="lineNoCov">          0 :         IWETH(WETH).withdraw(amountETH);</span></a>
-<a name="160"><span class="lineNum">     160 </span><span class="lineNoCov">          0 :         TransferHelper.safeTransferETH(to, amountETH);</span></a>
+<a name="158"><span class="lineNum">     158 </span><span class="lineCov">          2 :         TransferHelper.safeTransfer(token, to, amountToken);</span></a>
+<a name="159"><span class="lineNum">     159 </span><span class="lineCov">          2 :         IWETH(WETH).withdraw(amountETH);</span></a>
+<a name="160"><span class="lineNum">     160 </span><span class="lineCov">          2 :         TransferHelper.safeTransferETH(to, amountETH);</span></a>
 <a name="161"><span class="lineNum">     161 </span>            :     }</a>
 <a name="162"><span class="lineNum">     162 </span>            :     </a>
-<a name="163"><span class="lineNum">     163 </span><span class="lineNoCov">          0 :     function removeLiquidityWithPermit(</span></a>
+<a name="163"><span class="lineNum">     163 </span><span class="lineCov">          1 :     function removeLiquidityWithPermit(</span></a>
 <a name="164"><span class="lineNum">     164 </span>            :         address tokenA,</a>
 <a name="165"><span class="lineNum">     165 </span>            :         address tokenB,</a>
 <a name="166"><span class="lineNum">     166 </span>            :         uint liquidity,</a>
@@ -232,14 +232,14 @@
 <a name="170"><span class="lineNum">     170 </span>            :         uint deadline,</a>
 <a name="171"><span class="lineNum">     171 </span>            :         bool approveMax, uint8 v, bytes32 r, bytes32 s</a>
 <a name="172"><span class="lineNum">     172 </span>            :     ) external virtual override returns (uint amountA, uint amountB) {</a>
-<a name="173"><span class="lineNum">     173 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(tokenA, tokenB);</span></a>
-<a name="174"><span class="lineNum">     174 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
-<a name="175"><span class="lineNum">     175 </span><span class="lineNoCov">          0 :         uint value = approveMax ? type(uint).max : liquidity;</span></a>
-<a name="176"><span class="lineNum">     176 </span><span class="lineNoCov">          0 :         IUniswapV2Pair(pair).get_permit(msg.sender, address(this), value, deadline, v, r, s);</span></a>
-<a name="177"><span class="lineNum">     177 </span><span class="lineNoCov">          0 :         (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);</span></a>
+<a name="173"><span class="lineNum">     173 </span><span class="lineCov">          1 :         address pair = IUniswapV2Factory(factory).getPair(tokenA, tokenB);</span></a>
+<a name="174"><span class="lineNum">     174 </span><span class="lineCov">          1 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
+<a name="175"><span class="lineNum">     175 </span><span class="lineCov">          1 :         uint value = approveMax ? type(uint).max : liquidity;</span></a>
+<a name="176"><span class="lineNum">     176 </span><span class="lineCov">          1 :         IUniswapV2Pair(pair).get_permit(msg.sender, address(this), value, deadline, v, r, s);</span></a>
+<a name="177"><span class="lineNum">     177 </span><span class="lineCov">          1 :         (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);</span></a>
 <a name="178"><span class="lineNum">     178 </span>            :     }</a>
 <a name="179"><span class="lineNum">     179 </span>            :     </a>
-<a name="180"><span class="lineNum">     180 </span><span class="lineNoCov">          0 :     function removeLiquidityETHWithPermit(</span></a>
+<a name="180"><span class="lineNum">     180 </span><span class="lineCov">          1 :     function removeLiquidityETHWithPermit(</span></a>
 <a name="181"><span class="lineNum">     181 </span>            :         address token,</a>
 <a name="182"><span class="lineNum">     182 </span>            :         uint liquidity,</a>
 <a name="183"><span class="lineNum">     183 </span>            :         uint amountTokenMin,</a>
@@ -248,11 +248,11 @@
 <a name="186"><span class="lineNum">     186 </span>            :         uint deadline,</a>
 <a name="187"><span class="lineNum">     187 </span>            :         bool approveMax, uint8 v, bytes32 r, bytes32 s</a>
 <a name="188"><span class="lineNum">     188 </span>            :     ) external virtual override returns (uint amountToken, uint amountETH) {</a>
-<a name="189"><span class="lineNum">     189 </span><span class="lineNoCov">          0 :         address pair = IUniswapV2Factory(factory).getPair(token, WETH);</span></a>
-<a name="190"><span class="lineNum">     190 </span><span class="lineNoCov">          0 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
-<a name="191"><span class="lineNum">     191 </span><span class="lineNoCov">          0 :         uint value = approveMax ? type(uint).max : liquidity;</span></a>
-<a name="192"><span class="lineNum">     192 </span><span class="lineNoCov">          0 :         IUniswapV2Pair(pair).get_permit(msg.sender, address(this), value, deadline, v, r, s);</span></a>
-<a name="193"><span class="lineNum">     193 </span><span class="lineNoCov">          0 :         (amountToken, amountETH) = removeLiquidityETH(token, liquidity, amountTokenMin, amountETHMin, to, deadline);</span></a>
+<a name="189"><span class="lineNum">     189 </span><span class="lineCov">          1 :         address pair = IUniswapV2Factory(factory).getPair(token, WETH);</span></a>
+<a name="190"><span class="lineNum">     190 </span><span class="lineCov">          1 :         require(pair != address(0), &quot;UniswapV2Router: PAIR_NOT_FOUND&quot;);</span></a>
+<a name="191"><span class="lineNum">     191 </span><span class="lineCov">          1 :         uint value = approveMax ? type(uint).max : liquidity;</span></a>
+<a name="192"><span class="lineNum">     192 </span><span class="lineCov">          1 :         IUniswapV2Pair(pair).get_permit(msg.sender, address(this), value, deadline, v, r, s);</span></a>
+<a name="193"><span class="lineNum">     193 </span><span class="lineCov">          1 :         (amountToken, amountETH) = removeLiquidityETH(token, liquidity, amountTokenMin, amountETHMin, to, deadline);</span></a>
 <a name="194"><span class="lineNum">     194 </span>            :     }</a>
 <a name="195"><span class="lineNum">     195 </span>            : </a>
 <a name="196"><span class="lineNum">     196 </span>            :     // **** REMOVE LIQUIDITY (supporting fee-on-transfer tokens) ****</a>

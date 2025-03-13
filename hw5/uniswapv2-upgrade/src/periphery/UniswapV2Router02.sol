@@ -5,7 +5,7 @@ import 'src/core/interfaces/IUniswapV2Factory.sol';
 import 'src/libraries/TransferHelper.sol';
 
 import 'src/periphery/interfaces/IUniswapV2Router02.sol';
-import 'src/periphery/libraries/UniswapV2Library.sol';
+import 'src/libraries/UniswapV2Library.sol';
 import 'src/core/interfaces/IERC20.sol';
 import 'src/core/interfaces/IUniswapV2Pair.sol';
 import 'src/periphery/interfaces/IWETH.sol';

@@ -6,7 +6,7 @@ import 'src/core/interfaces/IUniswapV2Factory.sol';
 import 'src/libraries/Babylonian.sol';
 import 'src/libraries/FullMath.sol';
 
-import './UniswapV2Library.sol';
+import 'src/libraries/UniswapV2Library.sol';
 
 // library containing some math for dealing with the liquidity shares of a pair, e.g. computing their exact value
 // in terms of the underlying tokens

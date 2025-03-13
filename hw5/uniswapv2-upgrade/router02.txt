@@ -1,4 +1,4 @@
-这是我的UniswapV2Router02.sol代码：
+这是我的UniswapV2Router02.sol代码, 该代码在src/periphery/UniswapV2Router02.sol。
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
@@ -537,8 +537,8 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
 }
 
 我想用solidity编写对其的测试，最终达到对UniswapV2Router02.sol的100% line coverage。
-改代码在src/periphery/UniswapV2Router02.sol。
+请帮我编写UniswapV2Router02SwapTest.sol。
 
-在编写测试的时候，你可能需要创建一些mock data，你需要在src/test/mocks/目录下创建；
-注意，不要让单一文件过长,所以创建多个Test，你可以在src/test/periphery/下创建多个测试；
+在编写测试的时候，如果你需要创建一些mock data，你需要在src/test/mocks/swap下创建；
 当你编写测试文件时，不必将UniswapV2Router02.sol整个导入，而是只导入需要用到的部分。
+

@@ -37,7 +37,7 @@
           </tr>
           <tr>
             <td class="headerItem">Date:</td>
-            <td class="headerValue">2025-03-12 18:59:56</td>
+            <td class="headerValue">2025-03-12 19:07:52</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntry">2</td>
@@ -67,10 +67,10 @@
 <a name="5"><span class="lineNum">       5 </span>            : </a>
 <a name="6"><span class="lineNum">       6 </span>            : library UniswapV2Library {</a>
 <a name="7"><span class="lineNum">       7 </span>            :     // returns sorted token addresses, used to handle return values from pairs sorted in this order</a>
-<a name="8"><span class="lineNum">       8 </span><span class="lineCov">          4 :     function sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {</span></a>
-<a name="9"><span class="lineNum">       9 </span><span class="lineCov">          4 :         require(tokenA != tokenB, 'UniswapV2Library: IDENTICAL_ADDRESSES');</span></a>
-<a name="10"><span class="lineNum">      10 </span><span class="lineCov">          4 :         (token0, token1) = tokenA &lt; tokenB ? (tokenA, tokenB) : (tokenB, tokenA);</span></a>
-<a name="11"><span class="lineNum">      11 </span><span class="lineCov">          4 :         require(token0 != address(0), 'UniswapV2Library: ZERO_ADDRESS');</span></a>
+<a name="8"><span class="lineNum">       8 </span><span class="lineCov">         12 :     function sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {</span></a>
+<a name="9"><span class="lineNum">       9 </span><span class="lineCov">         12 :         require(tokenA != tokenB, 'UniswapV2Library: IDENTICAL_ADDRESSES');</span></a>
+<a name="10"><span class="lineNum">      10 </span><span class="lineCov">         12 :         (token0, token1) = tokenA &lt; tokenB ? (tokenA, tokenB) : (tokenB, tokenA);</span></a>
+<a name="11"><span class="lineNum">      11 </span><span class="lineCov">         12 :         require(token0 != address(0), 'UniswapV2Library: ZERO_ADDRESS');</span></a>
 <a name="12"><span class="lineNum">      12 </span>            :     }</a>
 <a name="13"><span class="lineNum">      13 </span>            : </a>
 <a name="14"><span class="lineNum">      14 </span>            :     // calculates the CREATE2 address for a pair without making any external calls</a>
