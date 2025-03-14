@@ -105,7 +105,7 @@ library UniswapV2LiquidityMathLibrary {
         IUniswapV2Pair pair = IUniswapV2Pair(UniswapV2Library.pairFor(factory, tokenA, tokenB));
         bool feeOn = IUniswapV2Factory(factory).feeTo() != address(0);
         uint kLast = feeOn ? pair.kLast() : 0;
-        uint totalSupply = pair.get_totalSupply();
+        uint totalSupply = pair.totalSupply();
         return computeLiquidityValue(reservesA, reservesB, totalSupply, liquidityAmount, feeOn, kLast);
     }
 
@@ -125,7 +125,7 @@ library UniswapV2LiquidityMathLibrary {
         bool feeOn = IUniswapV2Factory(factory).feeTo() != address(0);
         IUniswapV2Pair pair = IUniswapV2Pair(UniswapV2Library.pairFor(factory, tokenA, tokenB));
         uint kLast = feeOn ? pair.kLast() : 0;
-        uint totalSupply = pair.get_totalSupply();
+        uint totalSupply = pair.totalSupply();
 
         // this also checks that totalSupply > 0
         require(totalSupply >= liquidityAmount && liquidityAmount > 0, 'ComputeLiquidityValue: LIQUIDITY_AMOUNT');

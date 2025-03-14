@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-interface IUniswapV2Pair {
+import "src/core/interfaces/IUniswapV2ERC20.sol";
+
+interface IUniswapV2Pair is IUniswapV2ERC20 {
     // Events
     // event Approval(address indexed owner, address indexed spender, uint256 value);
     // event Transfer(address indexed from, address indexed to, uint256 value);
@@ -20,43 +22,7 @@ interface IUniswapV2Pair {
 
     // Constants
     function MINIMUM_LIQUIDITY() external pure returns (uint256);
-
-    // Metadata
-    function get_name() external pure returns (string memory);
-
-    function get_symbol() external pure returns (string memory);
-
-    function get_decimals() external pure returns (uint8);
-
-    // ERC20-like Functions
-    function get_totalSupply() external view returns (uint256);
-
-    function get_balanceOf(address owner) external view returns (uint256);
-
-    function get_allowance(address owner, address spender) external view returns (uint256);
-
-    function get_approve(address spender, uint256 value) external returns (bool);
-
-    function get_transfer(address to, uint256 value) external returns (bool);
-
-    function get_transferFrom(address from, address to, uint256 value) external returns (bool);
-
-    // Permit (EIP-2612)
-    function get_DOMAIN_SEPARATOR() external view returns (bytes32);
-
-    function get_PERMIT_TYPEHASH() external pure returns (bytes32);
-    function get_nonces(address owner) external view returns (uint256);
-
-    function get_permit(
-        address owner,
-        address spender,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external;
-
+    
     // AMM Functions
     function factory() external view returns (address);
     function token0() external view returns (address);

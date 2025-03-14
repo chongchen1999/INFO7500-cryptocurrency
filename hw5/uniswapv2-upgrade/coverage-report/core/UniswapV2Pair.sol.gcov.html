@@ -31,17 +31,17 @@
             <td class="headerValue">lcov.info</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntry">150</td>
-            <td class="headerCovTableEntry">150</td>
+            <td class="headerCovTableEntry">109</td>
+            <td class="headerCovTableEntry">109</td>
             <td class="headerCovTableEntryHi">100.0 %</td>
           </tr>
           <tr>
             <td class="headerItem">Date:</td>
-            <td class="headerValue">2025-03-13 17:47:55</td>
+            <td class="headerValue">2025-03-14 00:10:59</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntry">25</td>
-            <td class="headerCovTableEntry">25</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">12</td>
             <td class="headerCovTableEntryHi">100.0 %</td>
           </tr>
           <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
@@ -261,94 +261,7 @@
 <a name="199"><span class="lineNum">     199 </span><span class="lineCov">          2 :     function sync() external lock {</span></a>
 <a name="200"><span class="lineNum">     200 </span><span class="lineCov">          2 :         _update(IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), reserve0, reserve1);</span></a>
 <a name="201"><span class="lineNum">     201 </span>            :     }</a>
-<a name="202"><span class="lineNum">     202 </span>            : </a>
-<a name="203"><span class="lineNum">     203 </span>            :     // Implement these in your UniswapV2Pair contract</a>
-<a name="204"><span class="lineNum">     204 </span>            : </a>
-<a name="205"><span class="lineNum">     205 </span>            :     // ERC20 getters</a>
-<a name="206"><span class="lineNum">     206 </span><span class="lineCov">          1 :     function get_name() external pure override returns (string memory) {</span></a>
-<a name="207"><span class="lineNum">     207 </span><span class="lineCov">          1 :         return name;</span></a>
-<a name="208"><span class="lineNum">     208 </span>            :     }</a>
-<a name="209"><span class="lineNum">     209 </span>            : </a>
-<a name="210"><span class="lineNum">     210 </span><span class="lineCov">          1 :     function get_symbol() external pure override returns (string memory) {</span></a>
-<a name="211"><span class="lineNum">     211 </span><span class="lineCov">          1 :         return symbol;</span></a>
-<a name="212"><span class="lineNum">     212 </span>            :     }</a>
-<a name="213"><span class="lineNum">     213 </span>            : </a>
-<a name="214"><span class="lineNum">     214 </span><span class="lineCov">          1 :     function get_decimals() external pure override returns (uint8) {</span></a>
-<a name="215"><span class="lineNum">     215 </span><span class="lineCov">          1 :         return decimals;</span></a>
-<a name="216"><span class="lineNum">     216 </span>            :     }</a>
-<a name="217"><span class="lineNum">     217 </span>            : </a>
-<a name="218"><span class="lineNum">     218 </span><span class="lineCov">          1 :     function get_totalSupply() external view override returns (uint256) {</span></a>
-<a name="219"><span class="lineNum">     219 </span><span class="lineCov">          1 :         return totalSupply;</span></a>
-<a name="220"><span class="lineNum">     220 </span>            :     }</a>
-<a name="221"><span class="lineNum">     221 </span>            : </a>
-<a name="222"><span class="lineNum">     222 </span><span class="lineCov">          1 :     function get_balanceOf(address owner) external view override returns (uint256) {</span></a>
-<a name="223"><span class="lineNum">     223 </span><span class="lineCov">          1 :         return balanceOf[owner];</span></a>
-<a name="224"><span class="lineNum">     224 </span>            :     }</a>
-<a name="225"><span class="lineNum">     225 </span>            : </a>
-<a name="226"><span class="lineNum">     226 </span><span class="lineCov">          3 :     function get_allowance(address owner, address spender) external view override returns (uint256) {</span></a>
-<a name="227"><span class="lineNum">     227 </span><span class="lineCov">          3 :         return allowance[owner][spender];</span></a>
-<a name="228"><span class="lineNum">     228 </span>            :     }</a>
-<a name="229"><span class="lineNum">     229 </span>            : </a>
-<a name="230"><span class="lineNum">     230 </span>            :     // Permit functionality</a>
-<a name="231"><span class="lineNum">     231 </span><span class="lineCov">          2 :     function get_DOMAIN_SEPARATOR() external view override returns (bytes32) {</span></a>
-<a name="232"><span class="lineNum">     232 </span><span class="lineCov">          2 :         return DOMAIN_SEPARATOR;</span></a>
-<a name="233"><span class="lineNum">     233 </span>            :     }</a>
-<a name="234"><span class="lineNum">     234 </span>            : </a>
-<a name="235"><span class="lineNum">     235 </span><span class="lineCov">          2 :     function get_PERMIT_TYPEHASH() external pure override returns (bytes32) {</span></a>
-<a name="236"><span class="lineNum">     236 </span><span class="lineCov">          2 :         return PERMIT_TYPEHASH;</span></a>
-<a name="237"><span class="lineNum">     237 </span>            :     }</a>
-<a name="238"><span class="lineNum">     238 </span>            : </a>
-<a name="239"><span class="lineNum">     239 </span><span class="lineCov">          3 :     function get_nonces(address owner) external view override returns (uint256) {</span></a>
-<a name="240"><span class="lineNum">     240 </span><span class="lineCov">          3 :         return nonces[owner];</span></a>
-<a name="241"><span class="lineNum">     241 </span>            :     }</a>
-<a name="242"><span class="lineNum">     242 </span>            : </a>
-<a name="243"><span class="lineNum">     243 </span>            :     // For ERC20 operations</a>
-<a name="244"><span class="lineNum">     244 </span><span class="lineCov">          2 :     function get_approve(address spender, uint256 value) external override returns (bool) {</span></a>
-<a name="245"><span class="lineNum">     245 </span><span class="lineCov">          2 :         allowance[msg.sender][spender] = value;</span></a>
-<a name="246"><span class="lineNum">     246 </span><span class="lineCov">          2 :         emit Approval(msg.sender, spender, value);</span></a>
-<a name="247"><span class="lineNum">     247 </span><span class="lineCov">          2 :         return true;</span></a>
-<a name="248"><span class="lineNum">     248 </span>            :     }</a>
-<a name="249"><span class="lineNum">     249 </span>            : </a>
-<a name="250"><span class="lineNum">     250 </span><span class="lineCov">          1 :     function get_transfer(address to, uint256 value) external override returns (bool) {</span></a>
-<a name="251"><span class="lineNum">     251 </span><span class="lineCov">          1 :         balanceOf[msg.sender] -= value;</span></a>
-<a name="252"><span class="lineNum">     252 </span><span class="lineCov">          1 :         balanceOf[to] += value;</span></a>
-<a name="253"><span class="lineNum">     253 </span><span class="lineCov">          1 :         emit Transfer(msg.sender, to, value);</span></a>
-<a name="254"><span class="lineNum">     254 </span><span class="lineCov">          1 :         return true;</span></a>
-<a name="255"><span class="lineNum">     255 </span>            :     }</a>
-<a name="256"><span class="lineNum">     256 </span>            : </a>
-<a name="257"><span class="lineNum">     257 </span><span class="lineCov">          1 :     function get_transferFrom(address from, address to, uint256 value) external override returns (bool) {</span></a>
-<a name="258"><span class="lineNum">     258 </span><span class="lineCov">          1 :         if (allowance[from][msg.sender] != type(uint).max) {</span></a>
-<a name="259"><span class="lineNum">     259 </span><span class="lineCov">          1 :             allowance[from][msg.sender] -= value;</span></a>
-<a name="260"><span class="lineNum">     260 </span>            :         }</a>
-<a name="261"><span class="lineNum">     261 </span><span class="lineCov">          1 :         balanceOf[from] -= value;</span></a>
-<a name="262"><span class="lineNum">     262 </span><span class="lineCov">          1 :         balanceOf[to] += value;</span></a>
-<a name="263"><span class="lineNum">     263 </span><span class="lineCov">          1 :         emit Transfer(from, to, value);</span></a>
-<a name="264"><span class="lineNum">     264 </span><span class="lineCov">          1 :         return true;</span></a>
-<a name="265"><span class="lineNum">     265 </span>            :     }</a>
-<a name="266"><span class="lineNum">     266 </span>            : </a>
-<a name="267"><span class="lineNum">     267 </span><span class="lineCov">          3 :     function get_permit(</span></a>
-<a name="268"><span class="lineNum">     268 </span>            :         address owner,</a>
-<a name="269"><span class="lineNum">     269 </span>            :         address spender,</a>
-<a name="270"><span class="lineNum">     270 </span>            :         uint256 value,</a>
-<a name="271"><span class="lineNum">     271 </span>            :         uint256 deadline,</a>
-<a name="272"><span class="lineNum">     272 </span>            :         uint8 v,</a>
-<a name="273"><span class="lineNum">     273 </span>            :         bytes32 r,</a>
-<a name="274"><span class="lineNum">     274 </span>            :         bytes32 s</a>
-<a name="275"><span class="lineNum">     275 </span>            :     ) external override {</a>
-<a name="276"><span class="lineNum">     276 </span><span class="lineCov">          3 :         require(deadline &gt;= block.timestamp, 'UniswapV2: EXPIRED');</span></a>
-<a name="277"><span class="lineNum">     277 </span><span class="lineCov">          2 :         bytes32 digest = keccak256(</span></a>
-<a name="278"><span class="lineNum">     278 </span>            :             abi.encodePacked(</a>
-<a name="279"><span class="lineNum">     279 </span>            :                 '\x19\x01',</a>
-<a name="280"><span class="lineNum">     280 </span>            :                 DOMAIN_SEPARATOR,</a>
-<a name="281"><span class="lineNum">     281 </span>            :                 keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonces[owner]++, deadline))</a>
-<a name="282"><span class="lineNum">     282 </span>            :             )</a>
-<a name="283"><span class="lineNum">     283 </span>            :         );</a>
-<a name="284"><span class="lineNum">     284 </span><span class="lineCov">          2 :         address recoveredAddress = ecrecover(digest, v, r, s);</span></a>
-<a name="285"><span class="lineNum">     285 </span><span class="lineCov">          2 :         require(recoveredAddress != address(0) &amp;&amp; recoveredAddress == owner, 'UniswapV2: INVALID_SIGNATURE');</span></a>
-<a name="286"><span class="lineNum">     286 </span><span class="lineCov">          1 :         allowance[owner][spender] = value;</span></a>
-<a name="287"><span class="lineNum">     287 </span><span class="lineCov">          1 :         emit Approval(owner, spender, value);</span></a>
-<a name="288"><span class="lineNum">     288 </span>            :     }</a>
-<a name="289"><span class="lineNum">     289 </span>            : }</a>
+<a name="202"><span class="lineNum">     202 </span>            : }</a>
 </pre>
       </td>
     </tr>

@@ -499,27 +499,27 @@ contract UniswapV2PairTest is Test {
     // Test getter functions
     function testGetterFunctions() public {
         // Test name, symbol, decimals
-        assertEq(pair.get_name(), "Uniswap V2");
-        assertEq(pair.get_symbol(), "UNI-V2");
-        assertEq(pair.get_decimals(), 18);
+        assertEq(pair.name(), "Uniswap V2");
+        assertEq(pair.symbol(), "UNI-V2");
+        assertEq(pair.decimals(), 18);
         
         // Test totalSupply
-        assertTrue(pair.get_totalSupply() >= 0);
+        assertTrue(pair.totalSupply() >= 0);
         
         // Test balanceOf
-        assertTrue(pair.get_balanceOf(address(this)) >= 0);
+        assertTrue(pair.balanceOf(address(this)) >= 0);
         
         // Test allowance
-        assertTrue(pair.get_allowance(address(this), address(1)) >= 0);
+        assertTrue(pair.allowance(address(this), address(1)) >= 0);
         
         // Test DOMAIN_SEPARATOR
-        assertTrue(pair.get_DOMAIN_SEPARATOR() != bytes32(0));
+        assertTrue(pair.DOMAIN_SEPARATOR() != bytes32(0));
         
         // Test PERMIT_TYPEHASH
-        assertTrue(pair.get_PERMIT_TYPEHASH() != bytes32(0));
+        assertTrue(pair.PERMIT_TYPEHASH() != bytes32(0));
         
         // Test nonces
-        assertTrue(pair.get_nonces(address(this)) >= 0);
+        assertTrue(pair.nonces(address(this)) >= 0);
     }
 
     // Test ERC20 operations
@@ -534,23 +534,23 @@ contract UniswapV2PairTest is Test {
         uint256 testAmount = expandTo18Decimals(1); // Use 1 token for testing
         
         // Test approve
-        assertTrue(pair.get_approve(spender, testAmount));
-        assertEq(pair.get_allowance(address(this), spender), testAmount);
+        assertTrue(pair.approve(spender, testAmount));
+        assertEq(pair.allowance(address(this), spender), testAmount);
         
         // Test transfer
         uint initialBalance = pair.balanceOf(address(this));
         assertTrue(initialBalance >= testAmount, "Insufficient balance for test");
         
-        assertTrue(pair.get_transfer(spender, testAmount));
+        assertTrue(pair.transfer(spender, testAmount));
         assertEq(pair.balanceOf(spender), testAmount);
         assertEq(pair.balanceOf(address(this)), initialBalance - testAmount);
         
         // Approve spender to transfer back
         vm.prank(spender);
-        pair.get_approve(address(this), testAmount);
+        pair.approve(address(this), testAmount);
         
         // Test transferFrom
-        assertTrue(pair.get_transferFrom(spender, address(this), testAmount));
+        assertTrue(pair.transferFrom(spender, address(this), testAmount));
         assertEq(pair.balanceOf(address(this)), initialBalance);
         assertEq(pair.balanceOf(spender), 0);
     }
@@ -562,11 +562,11 @@ contract UniswapV2PairTest is Test {
         address spender = address(1);
         uint256 value = 1000;
         uint256 deadline = block.timestamp + 1 hours;
-        uint256 nonce = pair.get_nonces(owner);
+        uint256 nonce = pair.nonces(owner);
 
         // Construct the permit digest
-        bytes32 DOMAIN_SEPARATOR = pair.get_DOMAIN_SEPARATOR();
-        bytes32 PERMIT_TYPEHASH = pair.get_PERMIT_TYPEHASH();
+        bytes32 DOMAIN_SEPARATOR = pair.DOMAIN_SEPARATOR();
+        bytes32 PERMIT_TYPEHASH = pair.PERMIT_TYPEHASH();
         
         bytes32 digest = keccak256(
             abi.encodePacked(
@@ -582,18 +582,18 @@ contract UniswapV2PairTest is Test {
         // Test expired deadline
         vm.warp(block.timestamp + 2 hours);
         vm.expectRevert("UniswapV2: EXPIRED");
-        pair.get_permit(owner, spender, value, deadline, v, r, s);
+        pair.permit(owner, spender, value, deadline, v, r, s);
 
         // Reset timestamp and test invalid signature
         vm.warp(block.timestamp - 2 hours);
         vm.expectRevert("UniswapV2: INVALID_SIGNATURE");
-        pair.get_permit(owner, spender, value, deadline, v, r, bytes32(uint256(s) + 1)); // Tamper with s
+        pair.permit(owner, spender, value, deadline, v, r, bytes32(uint256(s) + 1)); // Tamper with s
 
         // Now test with valid signature
-        pair.get_permit(owner, spender, value, deadline, v, r, s);
+        pair.permit(owner, spender, value, deadline, v, r, s);
 
         // Verify the permit was successful
-        assertEq(pair.get_allowance(owner, spender), value, "Allowance not set correctly");
-        assertEq(pair.get_nonces(owner), nonce + 1, "Nonce not incremented");
+        assertEq(pair.allowance(owner, spender), value, "Allowance not set correctly");
+        assertEq(pair.nonces(owner), nonce + 1, "Nonce not incremented");
     }
 }

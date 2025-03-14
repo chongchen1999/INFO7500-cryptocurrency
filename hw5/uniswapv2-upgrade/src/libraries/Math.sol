@@ -3,6 +3,18 @@ pragma solidity ^0.8.28;
 
 // A library for performing various math operations
 library Math {
+    function safeAdd(uint x, uint y) public pure returns (uint) {
+        return x + y; 
+    }
+
+    function safeSub(uint x, uint y) public pure returns (uint) {
+        return x - y; 
+    }
+
+    function safeMul(uint x, uint y) public pure returns (uint) {
+        return x * y; 
+    }
+
     function min(uint x, uint y) internal pure returns (uint) {
         return x < y ? x : y;
     }
