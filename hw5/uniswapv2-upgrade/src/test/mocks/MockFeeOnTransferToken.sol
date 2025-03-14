@@ -1,64 +1,87 @@
-// // SPDX-License-Identifier: MIT
-// pragma solidity ^0.8.28;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
 
-// import "src/core/interfaces/IERC20.sol";
+import "src/core/interfaces/IERC20.sol";
 
-// contract MockFeeOnTransferToken is IERC20 {
-//     uint256 private _totalSupply;
-//     mapping(address => uint256) private _balances;
-//     mapping(address => mapping(address => uint256)) private _allowances;
+contract MockFeeOnTransferToken is IERC20 {
+    string private constant _name = "Mock Fee Token";
+    string private constant _symbol = "MFT";
+    uint8 private constant _decimals = 18;
     
-//     uint256 public constant FEE_PERCENT = 5; // 5% fee on transfers
+    uint256 private _totalSupply;
+    mapping(address => uint256) private _balances;
+    mapping(address => mapping(address => uint256)) private _allowances;
+    
+    uint256 public constant FEE_DENOMINATOR = 1000;
+    uint256 public transferFee = 10; // 1% fee
 
-//     constructor() {
-//         _totalSupply = 1000000 * 10**18; // 1M tokens
-//         _balances[msg.sender] = _totalSupply;
-//     }
+    constructor(uint256 initialSupply) {
+        _totalSupply = initialSupply;
+        _balances[msg.sender] = initialSupply;
+    }
 
-//     function totalSupply() external view override returns (uint256) {
-//         return _totalSupply;
-//     }
+    function name() external pure override returns (string memory) {
+        return _name;
+    }
 
-//     function balanceOf(address account) external view override returns (uint256) {
-//         return _balances[account];
-//     }
+    function symbol() external pure override returns (string memory) {
+        return _symbol;
+    }
 
-//     function transfer(address to, uint256 amount) external override returns (bool) {
-//         uint256 fee = (amount * FEE_PERCENT) / 100;
-//         uint256 actualAmount = amount - fee;
+    function decimals() external pure override returns (uint8) {
+        return _decimals;
+    }
+
+    function totalSupply() external view override returns (uint256) {
+        return _totalSupply;
+    }
+
+    function balanceOf(address account) external view override returns (uint256) {
+        return _balances[account];
+    }
+
+    function transfer(address to, uint256 amount) external override returns (bool) {
+        address owner = msg.sender;
+        uint256 fee = (amount * transferFee) / FEE_DENOMINATOR;
+        uint256 actualAmount = amount - fee;
         
-//         _balances[msg.sender] -= amount;
-//         _balances[to] += actualAmount;
-//         // Fee is burned
-//         _totalSupply -= fee;
-        
-//         emit Transfer(msg.sender, to, actualAmount);
-//         return true;
-//     }
+        _balances[owner] -= amount;
+        _balances[to] += actualAmount;
+        _totalSupply -= fee; // Burn the fee
 
-//     function allowance(address owner, address spender) external view override returns (uint256) {
-//         return _allowances[owner][spender];
-//     }
+        emit Transfer(owner, to, actualAmount);
+        if (fee > 0) {
+            emit Transfer(owner, address(0), fee);
+        }
+        return true;
+    }
 
-//     function approve(address spender, uint256 amount) external override returns (bool) {
-//         _allowances[msg.sender][spender] = amount;
-//         emit Approval(msg.sender, spender, amount);
-//         return true;
-//     }
+    function allowance(address owner, address spender) external view override returns (uint256) {
+        return _allowances[owner][spender];
+    }
 
-//     function transferFrom(address from, address to, uint256 amount) external override returns (bool) {
-//         require(_allowances[from][msg.sender] >= amount, "ERC20: insufficient allowance");
+    function approve(address spender, uint256 amount) external override returns (bool) {
+        _allowances[msg.sender][spender] = amount;
+        emit Approval(msg.sender, spender, amount);
+        return true;
+    }
+
+    function transferFrom(address from, address to, uint256 amount) external override returns (bool) {
+        require(_allowances[from][msg.sender] >= amount, "ERC20: insufficient allowance");
         
-//         uint256 fee = (amount * FEE_PERCENT) / 100;
-//         uint256 actualAmount = amount - fee;
+        _allowances[from][msg.sender] -= amount;
         
-//         _allowances[from][msg.sender] -= amount;
-//         _balances[from] -= amount;
-//         _balances[to] += actualAmount;
-//         // Fee is burned
-//         _totalSupply -= fee;
+        uint256 fee = (amount * transferFee) / FEE_DENOMINATOR;
+        uint256 actualAmount = amount - fee;
         
-//         emit Transfer(from, to, actualAmount);
-//         return true;
-//     }
-// }
+        _balances[from] -= amount;
+        _balances[to] += actualAmount;
+        _totalSupply -= fee; // Burn the fee
+
+        emit Transfer(from, to, actualAmount);
+        if (fee > 0) {
+            emit Transfer(from, address(0), fee);
+        }
+        return true;
+    }
+}

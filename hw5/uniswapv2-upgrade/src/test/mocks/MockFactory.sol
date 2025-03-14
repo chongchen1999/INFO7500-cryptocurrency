@@ -4,34 +4,17 @@ pragma solidity ^0.8.28;
 import "src/core/interfaces/IUniswapV2Factory.sol";
 
 contract MockFactory is IUniswapV2Factory {
-    address public override feeTo;
-    address public override feeToSetter;
-    mapping(address => mapping(address => address)) private pairs;
-    address[] public override allPairs;
-
-    function getPair(address tokenA, address tokenB) external view override returns (address) {
-        // Ensure tokens are ordered correctly
-        (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        return pairs[token0][token1];
-    }
+    mapping(address => mapping(address => address)) public pairs;
+    address[] public allPairs;
 
     function setPair(address tokenA, address tokenB, address pair) external {
-        // Ensure tokens are ordered correctly
-        (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        pairs[token0][token1] = pair;
-        pairs[token1][token0] = pair; // Add reverse mapping as well
-        
-        // Only add to allPairs if it doesn't exist
-        bool exists = false;
-        for (uint i = 0; i < allPairs.length; i++) {
-            if (allPairs[i] == pair) {
-                exists = true;
-                break;
-            }
-        }
-        if (!exists) {
-            allPairs.push(pair);
-        }
+        pairs[tokenA][tokenB] = pair;
+        pairs[tokenB][tokenA] = pair; // Set both directions
+        allPairs.push(pair);
+    }
+
+    function getPair(address tokenA, address tokenB) external view override returns (address) {
+        return pairs[tokenA][tokenB];
     }
 
     function allPairsLength() external view override returns (uint) {
@@ -39,27 +22,20 @@ contract MockFactory is IUniswapV2Factory {
     }
 
     function createPair(address tokenA, address tokenB) external override returns (address) {
-        require(tokenA != tokenB, 'UniswapV2Factory: IDENTICAL_ADDRESSES');
-        (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        require(token0 != address(0), 'UniswapV2Factory: ZERO_ADDRESS');
-        require(pairs[token0][token1] == address(0), 'UniswapV2Factory: PAIR_EXISTS');
+        require(tokenA != tokenB, 'UniswapV2: IDENTICAL_ADDRESSES');
+        require(tokenA != address(0) && tokenB != address(0), 'UniswapV2: ZERO_ADDRESS');
+        require(pairs[tokenA][tokenB] == address(0), 'UniswapV2: PAIR_EXISTS');
         
-        // For testing purposes, we return a deterministic address
-        bytes32 salt = keccak256(abi.encodePacked(token0, token1));
-        address pair = address(uint160(uint(salt)));
+        // For testing, we just return a dummy address
+        pairs[tokenA][tokenB] = address(uint160(uint(keccak256(abi.encodePacked(tokenA, tokenB)))));
+        pairs[tokenB][tokenA] = pairs[tokenA][tokenB];
+        allPairs.push(pairs[tokenA][tokenB]);
         
-        pairs[token0][token1] = pair;
-        pairs[token1][token0] = pair;
-        allPairs.push(pair);
-        
-        return pair;
+        return pairs[tokenA][tokenB];
     }
 
-    function setFeeTo(address _feeTo) external override {
-        feeTo = _feeTo;
-    }
-
-    function setFeeToSetter(address _feeToSetter) external override {
-        feeToSetter = _feeToSetter;
-    }
+    function setFeeTo(address) external override {}
+    function setFeeToSetter(address) external override {}
+    function feeTo() external pure override returns (address) { return address(0); }
+    function feeToSetter() external pure override returns (address) { return address(0); }
 }

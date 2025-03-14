@@ -31,18 +31,18 @@
             <td class="headerValue">lcov.info</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntry">21</td>
+            <td class="headerCovTableEntry">39</td>
             <td class="headerCovTableEntry">42</td>
-            <td class="headerCovTableEntryLo">50.0 %</td>
+            <td class="headerCovTableEntryHi">92.9 %</td>
           </tr>
           <tr>
             <td class="headerItem">Date:</td>
-            <td class="headerValue">2025-03-13 13:51:15</td>
+            <td class="headerValue">2025-03-13 17:47:55</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntry">4</td>
             <td class="headerCovTableEntry">8</td>
-            <td class="headerCovTableEntryLo">50.0 %</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
           </tr>
           <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
         </table>
@@ -67,16 +67,16 @@
 <a name="5"><span class="lineNum">       5 </span>            : </a>
 <a name="6"><span class="lineNum">       6 </span>            : library UniswapV2Library {</a>
 <a name="7"><span class="lineNum">       7 </span>            :     // returns sorted token addresses, used to handle return values from pairs sorted in this order</a>
-<a name="8"><span class="lineNum">       8 </span><span class="lineCov">         12 :     function sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {</span></a>
-<a name="9"><span class="lineNum">       9 </span><span class="lineCov">         12 :         require(tokenA != tokenB, 'UniswapV2Library: IDENTICAL_ADDRESSES');</span></a>
-<a name="10"><span class="lineNum">      10 </span><span class="lineCov">         12 :         (token0, token1) = tokenA &lt; tokenB ? (tokenA, tokenB) : (tokenB, tokenA);</span></a>
-<a name="11"><span class="lineNum">      11 </span><span class="lineCov">         12 :         require(token0 != address(0), 'UniswapV2Library: ZERO_ADDRESS');</span></a>
+<a name="8"><span class="lineNum">       8 </span><span class="lineCov">         16 :     function sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {</span></a>
+<a name="9"><span class="lineNum">       9 </span><span class="lineCov">         16 :         require(tokenA != tokenB, 'UniswapV2Library: IDENTICAL_ADDRESSES');</span></a>
+<a name="10"><span class="lineNum">      10 </span><span class="lineCov">         16 :         (token0, token1) = tokenA &lt; tokenB ? (tokenA, tokenB) : (tokenB, tokenA);</span></a>
+<a name="11"><span class="lineNum">      11 </span><span class="lineCov">         16 :         require(token0 != address(0), 'UniswapV2Library: ZERO_ADDRESS');</span></a>
 <a name="12"><span class="lineNum">      12 </span>            :     }</a>
 <a name="13"><span class="lineNum">      13 </span>            : </a>
 <a name="14"><span class="lineNum">      14 </span>            :     // calculates the CREATE2 address for a pair without making any external calls</a>
-<a name="15"><span class="lineNum">      15 </span><span class="lineNoCov">          0 :     function pairFor(address factory, address tokenA, address tokenB) internal pure returns (address pair) {</span></a>
-<a name="16"><span class="lineNum">      16 </span><span class="lineNoCov">          0 :         (address token0, address token1) = sortTokens(tokenA, tokenB);</span></a>
-<a name="17"><span class="lineNum">      17 </span><span class="lineNoCov">          0 :         pair = address(uint160(uint256(keccak256(abi.encodePacked(</span></a>
+<a name="15"><span class="lineNum">      15 </span><span class="lineCov">          2 :     function pairFor(address factory, address tokenA, address tokenB) internal pure returns (address pair) {</span></a>
+<a name="16"><span class="lineNum">      16 </span><span class="lineCov">          2 :         (address token0, address token1) = sortTokens(tokenA, tokenB);</span></a>
+<a name="17"><span class="lineNum">      17 </span><span class="lineCov">          2 :         pair = address(uint160(uint256(keccak256(abi.encodePacked(</span></a>
 <a name="18"><span class="lineNum">      18 </span>            :                 hex'ff',</a>
 <a name="19"><span class="lineNum">      19 </span>            :                 factory,</a>
 <a name="20"><span class="lineNum">      20 </span>            :                 keccak256(abi.encodePacked(token0, token1)),</a>
@@ -85,9 +85,9 @@
 <a name="23"><span class="lineNum">      23 </span>            :     }</a>
 <a name="24"><span class="lineNum">      24 </span>            : </a>
 <a name="25"><span class="lineNum">      25 </span>            :     // fetches and sorts the reserves for a pair</a>
-<a name="26"><span class="lineNum">      26 </span><span class="lineNoCov">          0 :     function getReserves(address factory, address tokenA, address tokenB) internal view returns (uint256 reserveA, uint256 reserveB) {</span></a>
-<a name="27"><span class="lineNum">      27 </span><span class="lineNoCov">          0 :         (address token0,) = sortTokens(tokenA, tokenB);</span></a>
-<a name="28"><span class="lineNum">      28 </span><span class="lineNoCov">          0 :         (uint256 reserve0, uint256 reserve1,) = IUniswapV2Pair(pairFor(factory, tokenA, tokenB)).getReserves();</span></a>
+<a name="26"><span class="lineNum">      26 </span><span class="lineCov">          2 :     function getReserves(address factory, address tokenA, address tokenB) internal view returns (uint256 reserveA, uint256 reserveB) {</span></a>
+<a name="27"><span class="lineNum">      27 </span><span class="lineCov">          2 :         (address token0,) = sortTokens(tokenA, tokenB);</span></a>
+<a name="28"><span class="lineNum">      28 </span><span class="lineCov">          2 :         (uint256 reserve0, uint256 reserve1,) = IUniswapV2Pair(pairFor(factory, tokenA, tokenB)).getReserves();</span></a>
 <a name="29"><span class="lineNum">      29 </span><span class="lineNoCov">          0 :         (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);</span></a>
 <a name="30"><span class="lineNum">      30 </span>            :     }</a>
 <a name="31"><span class="lineNum">      31 </span>            : </a>
@@ -118,23 +118,23 @@
 <a name="56"><span class="lineNum">      56 </span>            :     }</a>
 <a name="57"><span class="lineNum">      57 </span>            : </a>
 <a name="58"><span class="lineNum">      58 </span>            :     // performs chained getAmountOut calculations on any number of pairs</a>
-<a name="59"><span class="lineNum">      59 </span><span class="lineNoCov">          0 :     function getAmountsOut(address factory, uint256 amountIn, address[] memory path) internal view returns (uint256[] memory amounts) {</span></a>
-<a name="60"><span class="lineNum">      60 </span><span class="lineNoCov">          0 :         require(path.length &gt;= 2, 'UniswapV2Library: INVALID_PATH');</span></a>
-<a name="61"><span class="lineNum">      61 </span><span class="lineNoCov">          0 :         amounts = new uint256[](path.length);</span></a>
-<a name="62"><span class="lineNum">      62 </span><span class="lineNoCov">          0 :         amounts[0] = amountIn;</span></a>
-<a name="63"><span class="lineNum">      63 </span><span class="lineNoCov">          0 :         for (uint256 i = 0; i &lt; path.length - 1; i++) {</span></a>
-<a name="64"><span class="lineNum">      64 </span><span class="lineNoCov">          0 :             (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i], path[i + 1]);</span></a>
+<a name="59"><span class="lineNum">      59 </span><span class="lineCov">          1 :     function getAmountsOut(address factory, uint256 amountIn, address[] memory path) internal view returns (uint256[] memory amounts) {</span></a>
+<a name="60"><span class="lineNum">      60 </span><span class="lineCov">          1 :         require(path.length &gt;= 2, 'UniswapV2Library: INVALID_PATH');</span></a>
+<a name="61"><span class="lineNum">      61 </span><span class="lineCov">          1 :         amounts = new uint256[](path.length);</span></a>
+<a name="62"><span class="lineNum">      62 </span><span class="lineCov">          1 :         amounts[0] = amountIn;</span></a>
+<a name="63"><span class="lineNum">      63 </span><span class="lineCov">          1 :         for (uint256 i = 0; i &lt; path.length - 1; i++) {</span></a>
+<a name="64"><span class="lineNum">      64 </span><span class="lineCov">          1 :             (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i], path[i + 1]);</span></a>
 <a name="65"><span class="lineNum">      65 </span><span class="lineNoCov">          0 :             amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut);</span></a>
 <a name="66"><span class="lineNum">      66 </span>            :         }</a>
 <a name="67"><span class="lineNum">      67 </span>            :     }</a>
 <a name="68"><span class="lineNum">      68 </span>            : </a>
 <a name="69"><span class="lineNum">      69 </span>            :     // performs chained getAmountIn calculations on any number of pairs</a>
-<a name="70"><span class="lineNum">      70 </span><span class="lineNoCov">          0 :     function getAmountsIn(address factory, uint256 amountOut, address[] memory path) internal view returns (uint256[] memory amounts) {</span></a>
-<a name="71"><span class="lineNum">      71 </span><span class="lineNoCov">          0 :         require(path.length &gt;= 2, 'UniswapV2Library: INVALID_PATH');</span></a>
-<a name="72"><span class="lineNum">      72 </span><span class="lineNoCov">          0 :         amounts = new uint256[](path.length);</span></a>
-<a name="73"><span class="lineNum">      73 </span><span class="lineNoCov">          0 :         amounts[amounts.length - 1] = amountOut;</span></a>
-<a name="74"><span class="lineNum">      74 </span><span class="lineNoCov">          0 :         for (uint256 i = path.length - 1; i &gt; 0; i--) {</span></a>
-<a name="75"><span class="lineNum">      75 </span><span class="lineNoCov">          0 :             (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i - 1], path[i]);</span></a>
+<a name="70"><span class="lineNum">      70 </span><span class="lineCov">          1 :     function getAmountsIn(address factory, uint256 amountOut, address[] memory path) internal view returns (uint256[] memory amounts) {</span></a>
+<a name="71"><span class="lineNum">      71 </span><span class="lineCov">          1 :         require(path.length &gt;= 2, 'UniswapV2Library: INVALID_PATH');</span></a>
+<a name="72"><span class="lineNum">      72 </span><span class="lineCov">          1 :         amounts = new uint256[](path.length);</span></a>
+<a name="73"><span class="lineNum">      73 </span><span class="lineCov">          1 :         amounts[amounts.length - 1] = amountOut;</span></a>
+<a name="74"><span class="lineNum">      74 </span><span class="lineCov">          1 :         for (uint256 i = path.length - 1; i &gt; 0; i--) {</span></a>
+<a name="75"><span class="lineNum">      75 </span><span class="lineCov">          1 :             (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i - 1], path[i]);</span></a>
 <a name="76"><span class="lineNum">      76 </span><span class="lineNoCov">          0 :             amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);</span></a>
 <a name="77"><span class="lineNum">      77 </span>            :         }</a>
 <a name="78"><span class="lineNum">      78 </span>            :     }</a>
